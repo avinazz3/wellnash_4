@@ -1,0 +1,23 @@
+{
+  "development": {
+    "username": "avinash1",
+    "password": "wellnash4",
+    "database": "wellnash41",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "test": {
+    "username": "avinash1",
+    "password": "wellnash4",
+    "database": "wellnash41",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "avinash1",
+    "password": "wellnash4",
+    "database": "wellnash41",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
