@@ -1,23 +1,46 @@
 {
   "development": {
     "username": "avinash1",
-    "password": "wellnash4",
-    "database": "wellnash41",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "password": "drttcxbJaOBYu8UArhLU",
+    "database": "wellnash411",
+    "host": "wellnash411.chcqg0aq4eqq.ap-southeast-1.rds.amazonaws.com",
+    "dialect": "postgres",
+    "port": 5432,
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "test": {
     "username": "avinash1",
-    "password": "wellnash4",
-    "database": "wellnash41",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "password": "drttcxbJaOBYu8UArhLU",
+    "database": "wellnash411_test",
+    "host": "wellnash411.chcqg0aq4eqq.ap-southeast-1.rds.amazonaws.com",
+    "dialect": "postgres",
+    "port": 5432,
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "production": {
     "username": "avinash1",
-    "password": "wellnash4",
-    "database": "wellnash41",
-    "host": "127.0.0.1",
-    "dialect": "postgres"
+    "password": "drttcxbJaOBYu8UArhLU",
+    "database": "wellnash411",
+    "host": "wellnash411.chcqg0aq4eqq.ap-southeast-1.rds.amazonaws.com",
+    "dialect": "postgres",
+    "port": 5432,
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   }
 }
+
+
