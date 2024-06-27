@@ -3,7 +3,6 @@
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
-const process = require('process');
 const basename = path.basename(__filename);
 const env = process.env.NODE_ENV || 'development';
 const config = require(__dirname + '/../config/config.json')[env];
@@ -16,18 +15,20 @@ if (config.use_env_variable) {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 
-fs
-  .readdirSync(__dirname)
+fs.readdirSync(__dirname)
   .filter(file => {
-    return (
-      file.indexOf('.') !== 0 &&
-      file !== basename &&
-      file.slice(-3) === '.js' &&
-      file.indexOf('.test.js') === -1
-    );
+    return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
   })
   .forEach(file => {
-    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
+    const filePath = path.join(__dirname, file);
+    const modelInit = require(filePath);
+    if (typeof modelInit !== 'function') {
+      throw new Error(`Model initialization from file '${file}' did not export a function. Check the export of this file.`);
+    }
+    const model = modelInit(sequelize, Sequelize.DataTypes);
+    if (!model || !model.name) {
+      throw new Error(`The model from file '${file}' did not initialize correctly or missing modelName.`);
+    }
     db[model.name] = model;
   });
 
@@ -41,3 +42,4 @@ db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
 module.exports = db;
+
