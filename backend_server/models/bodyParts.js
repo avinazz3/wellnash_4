@@ -1,5 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 
+module.exports = (sequelize, DataTypes) => {
 class BodyPart extends Model {}
 
 BodyPart.init({
@@ -12,6 +13,6 @@ BodyPart.init({
 });erc
 
 module.exports = BodyPart;
-
+};
 
 
