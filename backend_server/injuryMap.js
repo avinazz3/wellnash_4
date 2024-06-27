@@ -1,4 +1,4 @@
-const injuryMap = {
+/*const injuryMap = {
     "Knee Injury": ["knee", "quadriceps", "hamstrings"],
     "Shoulder Injury": ["shoulder", "deltoids", "pectorals"],
     // Add more injuries and affected joints/muscles as needed
@@ -14,5 +14,5 @@ const injuryMap = {
     return affectedAreas;
   };
   
-  module.exports = injuryMap;
+  module.exports = injuryMap; */
   

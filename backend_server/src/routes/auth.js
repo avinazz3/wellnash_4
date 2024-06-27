@@ -4,7 +4,6 @@ const bcrypt = require('bcrypt');
 const { sequelize } = require('../../models');
 const auth = require('../../middleware/auth');
 const jwt = require('jsonwebtoken');
-const injuryMap = require('../../config/injuryMap'); 
 
 const validateEmail = (email) => {
   return email.match(

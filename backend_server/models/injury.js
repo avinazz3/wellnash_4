@@ -24,4 +24,3 @@ module.exports = (sequelize, DataTypes) => {
   });
   return Injury;
 };
-module.exports = { Injury }
