@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:wellnash_4/providers/user_provider.dart';
-import 'package:wellnash_4/services/auth_services.dart';
 import 'package:provider/provider.dart';
+import 'package:wellnash_4/screens/history_screen.dart';
+import 'package:wellnash_4/utils/custom_datetime_line.dart';
+import 'profile_screen.dart';
+import 'select_gym_screen.dart'; 
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,22 +16,31 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // List of screens for the Bottom Navigation
-  static final List<Widget> _widgetOptions = <Widget>[
-    const Text('Home Screen', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    const Text('Reports Screen', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-    const Text('Search Screen', style: TextStyle(fontSize: 35, fontWeight: FontWeight.bold)),
-  ];
-
-  // Handler for changing the selected index of the bottom nav
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-  }
 
-  void signOutUser(BuildContext context) {
-    AuthService().signOut(context);
+    switch (index) {
+      case 0:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const HistoryScreen()),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ProfileScreen()),
+        );
+        break;
+    }
   }
 
   @override
@@ -35,62 +48,85 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = Provider.of<UserProvider>(context).user;
 
     return Scaffold(
-      appBar: CustomAppBar(
-        title: 'Welcome, ${user.name}!',
-        onCameraTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ProgressPhotoTrackerScreen()),
-          );
-        },
+      appBar: AppBar(
+        title: const Text('Wellnash'),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(user.id),
-          Text(user.email),
-          Text(user.name), 
-          Expanded(
-            child: Center(
-              child: _widgetOptions.elementAt(_selectedIndex),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            Text(
+              'Welcome, ${user.name}!',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () => signOutUser(context),
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.all(Colors.blue),
-              textStyle: WidgetStateProperty.all(
-                const TextStyle(color: Colors.white),
+            const SizedBox(height: 20),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(16),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent,
+                borderRadius: BorderRadius.circular(10),
               ),
-              minimumSize: WidgetStateProperty.all(
-                Size(MediaQuery.of(context).size.width / 2.5, 50),
+              child: const Text(
+                "Today's workout: Day 2 Legs",
+                style: TextStyle(color: Colors.white, fontSize: 18),
+                textAlign: TextAlign.center,
               ),
             ),
-            child: const Text(
-              "Sign Out",
-              style: TextStyle(color: Colors.white, fontSize: 16),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SelectGymScreen()),
+                );
+              },
+              child: const Text('Start Workout'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size(MediaQuery.of(context).size.width * 0.8, 50), // Width of the button
+                textStyle: const TextStyle(fontSize: 18),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            CustomDateTimeline(
+              onDateChange: (selectedDate) {
+                // Handle date selection
+                print('Selected date: $selectedDate');
+              },
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                _selectedIndex == 0
+                    ? 'Home Screen'
+                    : _selectedIndex == 1
+                        ? 'History Screen'
+                        : 'Profile Screen',
+                style: const TextStyle(fontSize: 35, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        destinations: const <NavigationDestination>[
+          NavigationDestination(
             icon: Icon(Icons.home),
             label: 'Home',
           ),
-          BottomNavigationBarItem(
+          NavigationDestination(
             icon: Icon(Icons.article),
             label: 'History',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Explore',
+          NavigationDestination(
+            icon: Icon(Icons.account_circle),
+            label: 'Profile',
           ),
         ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
-        onTap: _onItemTapped,
       ),
     );
   }
@@ -134,5 +170,4 @@ class ProgressPhotoTrackerScreen extends StatelessWidget {
     );
   }
 }
-
 

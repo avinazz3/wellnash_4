@@ -20,15 +20,7 @@ fs.readdirSync(__dirname)
     return (file.indexOf('.') !== 0) && (file !== basename) && (file.slice(-3) === '.js');
   })
   .forEach(file => {
-    const filePath = path.join(__dirname, file);
-    const modelInit = require(filePath);
-    if (typeof modelInit !== 'function') {
-      throw new Error(`Model initialization from file '${file}' did not export a function. Check the export of this file.`);
-    }
-    const model = modelInit(sequelize, Sequelize.DataTypes);
-    if (!model || !model.name) {
-      throw new Error(`The model from file '${file}' did not initialize correctly or missing modelName.`);
-    }
+    const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
     db[model.name] = model;
   });
 
@@ -37,6 +29,17 @@ Object.keys(db).forEach(modelName => {
     db[modelName].associate(db);
   }
 });
+
+// Associations
+const { User, Exercise, DailyWorkout, WorkoutLog } = db;
+
+User.hasMany(DailyWorkout, { foreignKey: 'userId' });
+DailyWorkout.belongsTo(User, { foreignKey: 'userId' });
+
+DailyWorkout.belongsToMany(Exercise, { through: WorkoutLog });
+Exercise.belongsToMany(DailyWorkout, { through: WorkoutLog });
+
+sequelize.sync(); // ensure tables are created
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
