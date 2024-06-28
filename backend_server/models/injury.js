@@ -2,6 +2,7 @@
 const {
   Model
 } = require('sequelize');
+const BodyPart = require('./models/bodyparts');
 module.exports = (sequelize, DataTypes) => {
   class Injury extends Model {
     /**
@@ -10,17 +11,16 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+        this.hasMany(models.BodyPart, { foreignKey: 'injuryId', as: 'bodypartsUsed' });
     }
   }
   Injury.init({
     name: DataTypes.STRING,
     description: DataTypes.STRING,
-    bodyparts_used: DataTypes.JSON,
     intensity: DataTypes.INTEGER
   }, {
     sequelize,
-    modelName: 'Exercise',
+    modelName: 'Injury',
   });
   return Injury;
 };

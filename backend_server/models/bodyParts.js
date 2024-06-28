@@ -11,13 +11,14 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      this.belongsTo(models.Injury, { foreignKey: 'injuryId', as: 'injury' });
     }
   }
   BodyPart.init({
     name: DataTypes.STRING,
     intensity: DataTypes.INTEGER,
     type: DataTypes.ENUM('muscle', 'joint', 'bone'),
+    injuryId: DataTypes.INTEGER  // This is the foreign key for the association
   }, {
     sequelize,
     modelName: 'BodyPart',

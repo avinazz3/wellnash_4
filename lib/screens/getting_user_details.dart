@@ -12,15 +12,33 @@ class GettingUserDetails extends StatefulWidget {
 class _GettingUserDetailsState extends State<GettingUserDetails> {
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
-  final _injuriesController = TextEditingController();
+  final List<String> injuries = [
+    'Tennis Elbow',
+    'Hip Flexor Strain',
+    'Wrist Sprain',
+    'Ankle Sprain',
+    'Shin Splints',
+    'Back Pain',
+    'Groin Pull',
+    'Dislocated Shoulder',
+    'Achilles Sprain',
+    'Neck Sprain',
+    'Hamstring Sprain',
+    'Broken Leg',
+    'Broken Arm',
+    'ACL Tear',
+    'Slip Disc',
+  ];
+  String? selectedInjury;
   final AuthService authService = AuthService();
+ 
 
   void _submitDetails() {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final userId = userProvider.user.id;
     final height = _heightController.text;
     final weight = _weightController.text;
-    final injuries = _injuriesController.text;
+    final injuries = selectedInjury ?? 'No Injury';
 
     authService.updateUserDetails(
       context: context,
@@ -56,9 +74,20 @@ class _GettingUserDetailsState extends State<GettingUserDetails> {
               decoration: InputDecoration(labelText: 'Weight (kg)'),
               keyboardType: TextInputType.number,
             ),
-            TextField(
-              controller: _injuriesController,
-              decoration: InputDecoration(labelText: 'Injuries'),
+            DropdownButton<String>(
+              value: selectedInjury,
+              hint: Text('Select Injury'),
+              onChanged: (newValue) {
+                setState(() {
+                  selectedInjury = newValue;
+                });
+              },
+              items: injuries.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

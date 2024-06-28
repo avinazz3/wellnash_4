@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const { sequelize } = require('../../models');
 const auth = require('../../middleware/auth');
 const jwt = require('jsonwebtoken');
+const { getInjury } = require('../../injurydata');
 
 const validateEmail = (email) => {
   return email.match(
@@ -122,10 +123,11 @@ router.put('/user/details', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const injuriesMapped = getAffectedAreas(injuries);
-
-    user.body_details = { height, weight };
-    user.injuries = injuriesMapped;
+    /*const injuryDetails = getInjury(injuries);
+    injuries: injuryDetails*/ // Make sure your model can store this as JSON or as a relation
+    user.set({
+      body_details: { height, weight },
+    });
     await user.save();
 
     res.json({ message: 'User details updated successfully', user });
@@ -160,15 +162,4 @@ router.put('/user/workout', async (req, res) => {
   }
 });
 
-const getAffectedAreas = (injuries) => {
-  let affectedAreas = [];
-  injuries.forEach(injury => {
-    if (injuryMap[injury]) {
-      affectedAreas = [...affectedAreas, ...injuryMap[injury]];
-    }
-  });
-  return affectedAreas;
-};
-
-module.exports = router;
 
