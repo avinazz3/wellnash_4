@@ -44,8 +44,8 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/', // Updated to use initialRoute
       routes: {
         '/': (context) => Provider.of<UserProvider>(context).user.token.isEmpty ? SignupScreen() : HomeScreen(),
-        '/getting_user_details': (context) => GettingUserDetails(), // New route
-        '/workout_preferences': (context) => WorkoutPreferences(), // New route
+        '/getting_user_details': (context) => GettingUserDetails(), 
+        '/workout_preferences': (context) => WorkoutPreferences(), 
         '/home': (context) => const HomeScreen(),
       },
     );
