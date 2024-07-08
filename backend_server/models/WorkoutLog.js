@@ -5,8 +5,8 @@ const {
 module.exports = (sequelize, DataTypes) => {
   class WorkoutLog extends Model {
     static associate(models) {
-      WorkoutLog.belongsTo(models.DailyWorkout, { foreignKey: 'dailyWorkoutId' });
-      WorkoutLog.belongsTo(models.Exercise, { foreignKey: 'exerciseId' });
+      WorkoutLog.hasMany(models.DailyWorkout, { foreignKey: 'dailyWorkoutId' });
+      WorkoutLog.belongsToMany(models.User, { foreignKey: 'userId' });
     }
   }
   WorkoutLog.init({

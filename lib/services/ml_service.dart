@@ -23,6 +23,13 @@ class MLService {
     ];
 
     // Return a mock daily workout
-    return DailyWorkout(exercises: exercises);
+    return DailyWorkout(
+      id: 1,
+      title: 'Workout 1',
+      week: 1,
+      day: 1,
+      date: DateTime.now(),
+      exercises: exercises,
+    );
   }
 }

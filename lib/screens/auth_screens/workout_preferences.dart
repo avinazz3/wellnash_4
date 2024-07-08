@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wellnash_4/providers/user_provider.dart';
 import 'package:wellnash_4/services/auth_services.dart';
 
@@ -10,22 +11,48 @@ class WorkoutPreferences extends StatefulWidget {
 
 class _WorkoutPreferencesState extends State<WorkoutPreferences> {
   int _workoutDays = 3;
-  String _workoutRegime = 'Option 1';
-  final AuthService authService = AuthService();
+  String _workoutRegime = 'Upper Lower';
+  final SupabaseClient supabase = Supabase.instance.client;
 
-  void _submitPreferences() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final userId = userProvider.user.id;
+  Future<void> _submitPreferences() async {
+    final authService = Provider.of<AuthService>(context);
+    final user = authService.supabase.auth.currentUser;
+    final userId = user?.id;
 
-    authService.updateWorkoutPreferences(
-      context: context,
-      userId: userId,
-      workoutDays: _workoutDays,
-      workoutRegime: _workoutRegime,
-    ).then((_) {
-      // Navigate to the next page or home page after preferences are updated
-      Navigator.pushReplacementNamed(context, '/home');
-    });
+    try {
+       await supabase.from('users').update({
+        'workoutDays': _workoutDays,
+        'workoutRegime': _workoutRegime,
+      }).eq('id', userId!).maybeSingle();
+
+      if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Workout preferences updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/home');
+        } 
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unexpected error occurred'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -58,7 +85,7 @@ class _WorkoutPreferencesState extends State<WorkoutPreferences> {
             DropdownButtonFormField<String>(
               value: _workoutRegime,
               decoration: const InputDecoration(labelText: 'Workout Regime'),
-              items: ['Option 1', 'Option 2']
+              items: ['Upper Lower', 'Push Pull Legs', 'Full Body', 'Bro Split']
                   .map((String value) {
                     return DropdownMenuItem<String>(
                       value: value,

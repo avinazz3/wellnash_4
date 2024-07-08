@@ -1,55 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'providers/user_provider.dart';
-import 'package:wellnash_4/screens/home_screen.dart';
-import 'package:wellnash_4/screens/signup_screen.dart';
-import 'package:wellnash_4/screens/getting_user_details.dart'; 
-import 'package:wellnash_4/screens/workout_preferences.dart'; 
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wellnash_4/providers/user_provider.dart';
 import 'package:wellnash_4/services/auth_services.dart';
+import 'screens/auth_screens/login_screen.dart';
+import 'screens/auth_screens/signup_screen.dart';
+import 'screens/auth_screens/getting_user_details.dart';
+import 'screens/home_screen.dart';
+import 'package:json_theme/json_theme.dart';
+import 'package:flutter/services.dart';
+import 'dart:convert';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final themeStr = await rootBundle.loadString('assets/appainter_theme.json');
+  final themeJson = json.decode(themeStr);
+  final theme = ThemeDecoder.decodeThemeData(themeJson);
+
+  await Supabase.initialize(
+    url: 'https://kxkqsyzsudimqrqriguk.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4a3FzeXpzdWRpbXFycXJpZ3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTk3OTkxNjgsImV4cCI6MjAzNTM3NTE2OH0.jmlbjYldvrSgW-gmJOg7fGvVLrK7bU1BYdP9k7o_yPk',
+  );
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProxyProvider<AuthService, UserProvider>(
+          create: (_) => UserProvider(),
+          update: (_, authService, previousUserProvider) => 
+            UserProvider()..updateFromAuthService(authService),
+        ),
       ],
-      child: const MyApp(),
+      child: MyApp(theme: theme),
     ),
   );
 }
 
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  final AuthService authService = AuthService();
-
-  @override
-  void initState() {
-    super.initState();
-    authService.getUserData(context);
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key, required this.theme}) : super(key: key);
+  final ThemeData? theme;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Wellnash',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+      theme: theme,
+      home: Consumer<AuthService>(
+        builder: (context, authService, _) {
+          if (authService.isAuthenticated) {
+            // Fetch user data when authenticated
+            Provider.of<UserProvider>(context, listen: false).fetchUser();
+            return HomeScreen();
+          } else {
+            return LoginScreen();
+          }
+        },
       ),
-      initialRoute: '/', // Updated to use initialRoute
       routes: {
-        '/': (context) => Provider.of<UserProvider>(context).user.token.isEmpty ? SignupScreen() : HomeScreen(),
-        '/getting_user_details': (context) => GettingUserDetails(), 
-        '/workout_preferences': (context) => WorkoutPreferences(), 
-        '/home': (context) => const HomeScreen(),
+        '/signup': (context) => SignUpScreen(),
+        '/getting_user_details': (context) => GettingUserDetails(),
+        '/home': (context) => HomeScreen(),
       },
     );
   }
 }
-
-

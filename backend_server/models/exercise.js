@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
   class Exercise extends Model {
     static associate(models) {
       Exercise.belongsToMany(models.DailyWorkout, { through: models.WorkoutLog });
+      Exercise.belongsToMany(models.BodyPart, { through: 'ExerciseBodyPart' });
+      Exercise.belongsToMany(models.Gym, { through: 'GymExercise' });
     }
   }
   Exercise.init({

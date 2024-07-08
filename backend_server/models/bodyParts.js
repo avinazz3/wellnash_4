@@ -11,12 +11,12 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      BodyPart.belongsToMany(models.Exercise, { through: 'ExerciseBodyPart' });
+      BodyPart.belongsToMany(models.Injury, { through: 'InjuryBodyPart' });
     }
   }
   BodyPart.init({
     name: DataTypes.STRING,
-    intensity: DataTypes.INTEGER,
     type: DataTypes.ENUM('muscle', 'joint', 'bone'),
   }, {
     sequelize,
