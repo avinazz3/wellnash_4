@@ -10,7 +10,8 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      Injury.belongsToMany(models.BodyPart, { through: 'InjuryBodyPart' });
+      Injury.belongsToMany(models.User, { through: 'UserInjury' }); 
     }
   }
   Injury.init({
@@ -20,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
     intensity: DataTypes.INTEGER
   }, {
     sequelize,
-    modelName: 'Exercise',
+    modelName: 'Injury',
   });
   return Injury;
 };

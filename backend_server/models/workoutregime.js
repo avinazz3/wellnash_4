@@ -3,7 +3,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class WorkoutRegime extends Model {
     static associate(models) {
-      WorkoutRegime.hasMany(models.User, { foreignKey: 'workoutRegimeId' });
+      WorkoutRegime.belongsToMany(models.User, { foreignKey: 'workoutRegimeId' });
     }
   }
   WorkoutRegime.init({

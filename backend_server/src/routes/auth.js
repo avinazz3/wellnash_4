@@ -170,5 +170,46 @@ const getAffectedAreas = (injuries) => {
   return affectedAreas;
 };
 
+// Fetch injuries
+router.get('/user/injuries', async (req, res) => {
+  try {
+    const injuries = await Injury.findAll();
+    res.json(injuries);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch injuries' });
+  }
+});
+
+// Update user details
+router.put('/user/details', async (req, res) => {
+  const userId = req.params.id;
+  const { height, weight, injuries, goals } = req.body;
+
+  try {
+    const user = await User.findByPk(userId);
+    if (user) {
+      user.height = height;
+      user.weight = weight;
+      user.goals = goals;
+      await user.save();
+
+      if (injuries && injuries.length > 0) {
+        const injuryInstances = await Injury.findAll({
+          where: {
+            name: injuries
+          }
+        });
+        await user.setInjuries(injuryInstances);
+      }
+
+      res.json(user);
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update user details' });
+  }
+});
+
 module.exports = router;
 
