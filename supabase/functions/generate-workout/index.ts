@@ -1,6 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk'
+import { config } from "https://deno.land/x/dotenv/mod.ts";
+
+// Load the environment variables from the .env file
+const env = config();
 
 serve(async (req) => {
   const corsHeaders = {
@@ -23,8 +27,8 @@ serve(async (req) => {
       }
 
       // Create Supabase client
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')
-      const supabaseServiceKey = Deno.env.get('SUPABASE_ANON_KEY')
+      const supabaseUrl = env.get('SUPABASE_URL')
+      const supabaseServiceKey = env.get('SUPABASE_ANON_KEY')
       if (!supabaseUrl || !supabaseServiceKey) {
         throw new Error('Missing Supabase configuration')
       }
@@ -54,7 +58,7 @@ serve(async (req) => {
 
       // Create Anthropic client
       const anthropic = new Anthropic({
-        apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
+        apiKey: env.get('ANTHROPIC_API_KEY'),
       })
 
       const prompt = `
