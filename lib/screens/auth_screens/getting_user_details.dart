@@ -23,7 +23,7 @@ class _GettingUserDetailsState extends State<GettingUserDetails> {
   @override
   void initState() {
     super.initState();
-    _fetchInjuries();
+    //_fetchInjuries();
   }
 
 Future<void> _fetchInjuries() async {
@@ -50,57 +50,67 @@ Future<void> _fetchInjuries() async {
   }
 }
 
-
   Future<void> _submitDetails() async {
-    final userId = supabase.auth.currentUser?.id;
-    final height = double.tryParse(_heightController.text);
-    final weight = double.tryParse(_weightController.text);
-    final goal = selectedGoal ?? '';
-    final activitylvl = selectedActivityLvl ?? '';
+  final userId = supabase.auth.currentUser?.id;
+  final height = double.tryParse(_heightController.text);
+  final weight = double.tryParse(_weightController.text);
+  final goal = selectedGoal ?? '';
+  final activitylvl = selectedActivityLvl ?? '';
 
-    if (height == null || weight == null) {
-      _showSnackBar('Please enter valid height and weight', isError: true);
-      return;
+  if (height == null || weight == null) {
+    _showSnackBar('Please enter valid height and weight', isError: true);
+    return;
+  }
+
+  try {
+    print("Starting user update");
+
+    // Perform the update
+    await supabase.from('users').update({
+      'height': height,
+      'weight': weight,
+      'goals': goal,
+      'activity_level': activitylvl,
+    }).eq('id', userId!);
+
+    print("User update completed");
+
+    // Process injuries
+    print("Selected injuries: $selectedInjuries");
+
+    if (selectedInjuries.isNotEmpty) {
+      for (var injury in selectedInjuries) {
+        print("Processing injury: $injury");
+        final response = await supabase.from('injuries').select('id').eq('name', injury).single();
+        print("Injury query response: $response");
+        final injuryId = response['id'];
+        print("Injury ID: $injuryId");
+        print("User ID: $userId");
+
+        await supabase.from('user_injuries').insert({
+          'user_id': userId,
+          'injury_id': injuryId,
+        });
+        print("Injury inserted for user");
+      }
+    } else {
+      print("No injuries selected");
     }
 
-    try {
-      final updateUserResponse = await supabase.from('users').update({
-        'height': height,
-        'weight': weight,
-        'goals': goal,
-        'activity_level': activitylvl,
-      }).eq('id', userId!);
-
-      if (mounted && updateUserResponse.error == null) {
-        
-        for (var injury in selectedInjuries) {
-          final response = await supabase.from('injuries').select('id').eq('name', injury).single();
-          final injuryId = response['id'];
-          print(injuryId); // this line is not being executed
-          print(userId);
-          await supabase.from('user_injuries').insert({
-            'user_id': userId,
-            'injury_id': injuryId,
-          });
-        }
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => WorkoutPreferences()),
-        );
-      } else {
-        _showSnackBar('Failed to update user details', isError: true);
-      }
-    } on PostgrestException catch (error) {
-      if (mounted) {
-        _showSnackBar(error.message, isError: true);
-      }
-    } catch (error) {
-      if (mounted) {
-        _showSnackBar('Unexpected error occurred', isError: true);
-      }
+    if (mounted) {
+      _showSnackBar('Details updated successfully');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => WorkoutPreferences()),
+      );
+    }
+  } catch (error) {
+    print("Error: $error");
+    if (mounted) {
+      _showSnackBar('Error: ${error.toString()}', isError: true);
     }
   }
+}
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (mounted) {
@@ -118,7 +128,7 @@ Future<void> _fetchInjuries() async {
     return Scaffold(
       appBar: AppBar(
         title: const Text('User Details'),
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color.fromARGB(0, 244, 115, 2),
         elevation: 0,
       ),
       extendBodyBehindAppBar: true,
@@ -148,11 +158,11 @@ Future<void> _fetchInjuries() async {
                   const SizedBox(height: 30),
                   ElevatedButton(
                     onPressed: _submitDetails,
-                    child: const Text('Next'),
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-                      textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
+                    child: const Text('Next'),
                   ),
                 ],
               ),

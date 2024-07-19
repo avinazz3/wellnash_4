@@ -1,61 +1,118 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:wellnash_4/models/user.dart';
-import 'package:wellnash_4/providers/user_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wellnash_4/models/user.dart' as models;
+import 'package:wellnash_4/screens/auth_screens/login_screen.dart';
+import 'package:wellnash_4/utils/utils.dart';
 import 'home_screen.dart';
 import 'history_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<UserProvider>(
-      builder: (context, userProvider, child) {
-        final user = userProvider.user;
-        if (user == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text('Profile'),
-            backgroundColor: Theme.of(context).primaryColor,
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildProfileHeader(context, user),
-                SizedBox(height: 24),
-                _buildUserInfoSection(context, userProvider),
-                SizedBox(height: 24),
-                _buildBodyDetailsSection(context, userProvider),
-                SizedBox(height: 24),
-                _buildWorkoutSection(context, userProvider),
-                SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    // Implement sign out functionality
-                  },
-                  child: Text('Sign Out'),
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ],
+class _ProfileScreenState extends State<ProfileScreen> {
+  models.User? user;
+  final supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final supabaseUser = supabase.auth.currentUser;
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      final userData = await supabase
+          .from('users')
+          .select()
+          .eq('id', userId)
+          .single();
+      setState(() {
+        user = models.User.fromSupabaseUser(supabaseUser!, userData);
+      });
+    }
+  }
+
+  Future<void> _signOut() async {
+    await supabase.auth.signOut();
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => LoginScreen()),
+      );
+    }
+  }
+
+  Future<void> _updateUser(String field, dynamic value) async {
+    try {
+      await supabase
+          .from('users')
+          .update({field: value})
+          .eq('id', user!.id);
+      await _loadUserData();
+      if (mounted) {
+        showSnackBar(context, message: 'Updated successfully');
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Failed to update: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (user == null) {
+      return Scaffold(
+        body: Center(
+          child: ElevatedButton(
+            onPressed: _signOut,
+            child: Text('Sign Out'),
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.symmetric(vertical: 16),
             ),
           ),
-          bottomNavigationBar: _buildBottomNavigationBar(context),
-        );
-      },
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Profile'),
+        backgroundColor: Theme.of(context).primaryColor,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildProfileHeader(context, user!),
+            SizedBox(height: 24),
+            _buildUserInfoSection(context),
+            SizedBox(height: 24),
+            _buildBodyDetailsSection(context),
+            SizedBox(height: 24),
+            _buildWorkoutSection(context),
+            SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _signOut,
+              child: Text('Sign Out'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context, User user) {
+  Widget _buildProfileHeader(BuildContext context, models.User user) {
     return Column(
       children: [
         CircleAvatar(
@@ -68,38 +125,29 @@ class ProfileScreen extends StatelessWidget {
               : null,
         ),
         SizedBox(height: 16),
-        Text(
-          user.name,
-          //style: Theme.of(context).textTheme.headline5,
-        ),
-        Text(
-          user.email ?? 'Email not available',
-          //style: Theme.of(context).textTheme.subtitle1,
-        ),
+        Text(user.name),
+        Text(user.email ?? 'Email not available'),
       ],
     );
   }
 
-  Widget _buildUserInfoSection(BuildContext context, UserProvider userProvider) {
+  Widget _buildUserInfoSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Personal Information',
-          //style: Theme.of(context).textTheme.headline6,
-        ),
+        const Text('Personal Information'),
         SizedBox(height: 8),
         _buildUserInfoField(
           context,
           'Name',
-          userProvider.user!.name,
-          (value) => userProvider.updateUser('name', value),
+          user!.name,
+          (value) => _updateUser('name', value),
           icon: Icons.person,
         ),
         _buildUserInfoField(
           context,
           'Email',
-          userProvider.user!.email!,
+          user!.email!,
           null,
           icon: Icons.email,
           editable: false,
@@ -108,55 +156,48 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBodyDetailsSection(BuildContext context, UserProvider userProvider) {
-    final user = userProvider.user!;
+  Widget _buildBodyDetailsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Body Details',
-          //style: Theme.of(context).textTheme.headline6,
-        ),
+        Text('Body Details'),
         SizedBox(height: 8),
         _buildUserInfoField(
           context,
           'Height (cm)',
-          user.height.toString() ?? 'Not set',
-          (value) => userProvider.updateHeight(double.parse(value)),
+          user!.height.toString(),
+          (value) => _updateUser('height', double.parse(value)),
           icon: Icons.height,
         ),
         _buildUserInfoField(
           context,
           'Weight (kg)',
-          user.weight.toString() ?? 'Not set',
-          (value) => userProvider.updateWeight(double.parse(value)),
+          user!.weight.toString(),
+          (value) => _updateUser('weight', double.parse(value)),
           icon: Icons.monitor_weight,
         ),
       ],
     );
   }
 
-  Widget _buildWorkoutSection(BuildContext context, UserProvider userProvider) {
+  Widget _buildWorkoutSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Workout Information',
-          //style: Theme.of(context).textTheme.headline6,
-        ),
+        Text('Workout Information'),
         SizedBox(height: 8),
         _buildUserInfoField(
           context,
           'Goals',
-          userProvider.user!.goals ?? 'Not set',
-          (value) => userProvider.updateUser('goals', value),
+          user!.goals ?? 'Not set',
+          (value) => _updateUser('goals', value),
           icon: Icons.flag,
         ),
         _buildUserInfoField(
           context,
           'Workout Days',
-          userProvider.user!.workoutDays.toString() ?? 'Not set',
-          (value) => userProvider.updateWorkoutDays(int.parse(value)),
+          user!.workoutDays.toString(),
+          (value) => _updateUser('workout_days', int.parse(value)),
           icon: Icons.calendar_today,
         ),
       ],
@@ -236,8 +277,8 @@ class ProfileScreen extends StatelessWidget {
       },
       destinations: const [
         NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
-        NavigationDestination(icon: Icon(Icons.history), label: 'History'),
-        NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
+        NavigationDestination(icon: Icon(Icons.article), label: 'History'),
+        NavigationDestination(icon: Icon(Icons.account_circle), label: 'Profile'),
       ],
     );
   }

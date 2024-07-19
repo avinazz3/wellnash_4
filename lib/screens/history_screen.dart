@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wellnash_4/models/exercise.dart';
-import 'package:wellnash_4/services/auth_services.dart';
+import 'package:wellnash_4/models/daily_workout.dart';
+import 'package:wellnash_4/screens/show_workout_details.dart';
+import 'package:wellnash_4/utils/condensed_workout_widget.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
-import 'show_workout_details.dart';
-import 'package:wellnash_4/models/daily_workout.dart';
-import 'package:wellnash_4/providers/user_provider.dart';
-import 'package:provider/provider.dart';
-import 'package:wellnash_4/utils/condensed_workout_widget.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -19,42 +17,90 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedIndex = 1;
   DateTime? selectedDate;
-  List<DailyWorkout> workoutLogs = []; // Replace this with your workout log list
+  List<DailyWorkout> workoutLogs = [];
+  bool _isLoading = true;
+  final supabase = Supabase.instance.client;
 
   @override
   void initState() {
     super.initState();
-    // Load workout logs here. This is just a placeholder.
-    workoutLogs = [
-      DailyWorkout(
-        id: 1,
-        date: DateTime(2024, 5, 24),
-        title: 'Upper Day 1',
-        week: 1,
-        day: 3,
-        exercises: [
-          Exercise(name: 'Deadlift (Barbell)', sets: [ExerciseSet(intensity: 65, targetKg: 16, reps: 12)]),
-          Exercise(name: 'Leg Curl', sets: [ExerciseSet(intensity: 65, targetKg: 50, reps: 15)]),
-          Exercise(name: 'Leg Extension', sets: [ExerciseSet(intensity: 65, targetKg: 35, reps: 12)]),
-        ],
-      ),
-      DailyWorkout(
-        id: 2,
-        date: DateTime(2024, 5, 23),
-        title: 'Upper Day 1',
-        week: 1,
-        day: 2,
-        exercises: [
-          Exercise(name: 'Bench Press (Barbell)', sets: [ExerciseSet(intensity: 65, targetKg: 60, reps: 6)]),
-          Exercise(name: 'Tempo Overhead Press', sets: [ExerciseSet(intensity: 65, targetKg: 30, reps: 12)]),
-          Exercise(name: 'Tricep Extension (Cable)', sets: [ExerciseSet(intensity: 65, targetKg: 21, reps: 15)]),
-          Exercise(name: 'Bicep Curl (Dumbbell)', sets: [ExerciseSet(intensity: 65, targetKg: 10, reps: 12)]),
-          Exercise(name: 'Rear Delt Fly (Dumbbell)', sets: [ExerciseSet(intensity: 65, targetKg: 32.5, reps: 12)]),
-          Exercise(name: 'Wide Grip Pull-Up', sets: [ExerciseSet(intensity: 65, targetKg: 0, reps: 12)]),
-        ],
-      ),
-    ];
+    _loadWorkoutLogs();
   }
+
+ Future<void> _loadWorkoutLogs() async {
+  try {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      // First, fetch the user's workout log
+      final workoutLogResponse = await supabase
+          .from('workout_logs')
+          .select()
+          .eq('user_id', userId)
+          .single();
+
+      if (workoutLogResponse != null) {
+        // Now fetch the daily workouts associated with this workout log
+        final dailyWorkoutsResponse = await supabase
+            .from('dailyworkouts')
+            .select()
+            .eq('workout_log_id', workoutLogResponse['id'])
+            .order('date', ascending: false);
+
+        setState(() {
+          workoutLogs = dailyWorkoutsResponse.map((log) => DailyWorkout.fromJson(log)).toList();
+          _isLoading = false;
+        });
+      } else {
+        // Handle case where user doesn't have a workout log
+        print('No workout log found for user');
+        setState(() {
+          workoutLogs = [];
+          _isLoading = false;
+        });
+      }
+    }
+  } catch (e) {
+    print('Error loading workout logs: $e');
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
+  Future<DailyWorkout?> _getFullWorkoutDetails(String workoutId) async {
+    try {
+      final workoutData = await supabase
+          .from('daily_workouts')
+          .select('*, exercises(*)')
+          .eq('id', workoutId)
+          .single();
+      
+      return DailyWorkout.fromJson(workoutData);
+    } catch (e) {
+      print('Error fetching full workout details: $e');
+      return null;
+    }
+  }
+
+  void _onWorkoutTapped(DailyWorkout workout) async {
+    final fullWorkout = await _getFullWorkoutDetails(workout.id);
+    if (fullWorkout != null && mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ShowWorkoutDetailsScreen(
+            dailyWorkout: fullWorkout,
+            userId: supabase.auth.currentUser!.id,
+          ),
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load workout details')),
+      );
+    }
+  }
+
 
   void _onDateSelected(DateTime date) {
     setState(() {
@@ -70,7 +116,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   List<DailyWorkout> _filteredWorkoutLogs() {
     if (selectedDate == null) return workoutLogs;
-    return workoutLogs.where((log) => log.date == selectedDate).toList();
+    return workoutLogs.where((log) => log.date.year == selectedDate!.year && 
+                                      log.date.month == selectedDate!.month && 
+                                      log.date.day == selectedDate!.day).toList();
   }
 
   void _onItemTapped(int index) {
@@ -80,19 +128,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     switch (index) {
       case 0:
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
         );
         break;
       case 1:
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const HistoryScreen()),
-        );
+        // Do nothing, we're already on the History screen
         break;
       case 2:
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const ProfileScreen()),
         );
@@ -103,37 +148,42 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     List<DailyWorkout> filteredLogs = _filteredWorkoutLogs();
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.supabase.auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('History'),
       ),
-      body: Column(
-        children: [
-          CalendarDatePicker(
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2020),
-            lastDate: DateTime(2030),
-            onDateChanged: _onDateSelected,
-          ),
-          if (selectedDate != null)
-            TextButton(
-              onPressed: _clearFilter,
-              child: const Text('Clear'),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : Column(
+          children: [
+            CalendarDatePicker(
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2030),
+              onDateChanged: _onDateSelected,
             ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredLogs.length,
-              itemBuilder: (context, index) {
-                final log = filteredLogs[index];
-                return CondensedWorkoutWidget(dailyWorkout: log);
-              },
+            if (selectedDate != null)
+              TextButton(
+                onPressed: _clearFilter,
+                child: const Text('Clear'),
+              ),
+            Expanded(
+              child: filteredLogs.isEmpty
+                ? Center(child: Text('No workout logs found'))
+                : ListView.builder(
+                  itemCount: filteredLogs.length,
+                  itemBuilder: (context, index) {
+                    final log = filteredLogs[index];
+                    return GestureDetector(
+                      onTap: () => _onWorkoutTapped(log),
+                      child: CondensedWorkoutWidget(dailyWorkout: log),
+                    );
+                  },
+                ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,

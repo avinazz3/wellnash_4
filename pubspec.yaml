@@ -44,6 +44,7 @@ dependencies:
   flutter_svg: ^1.0.3
   multiselect: ^0.1.0
   json_theme: ^6.4.1
+  numberpicker: ^2.1.2
 
 dev_dependencies:
   flutter_test:

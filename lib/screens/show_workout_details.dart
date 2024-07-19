@@ -1,41 +1,74 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wellnash_4/models/daily_workout.dart';
-import 'package:provider/provider.dart';
 import 'package:wellnash_4/models/exercise.dart';
-import 'package:wellnash_4/services/auth_services.dart';
 
-class ShowWorkoutDetailsScreen extends StatelessWidget {
+class ShowWorkoutDetailsScreen extends StatefulWidget {
   final DailyWorkout dailyWorkout;
+  final String userId;
 
-  const ShowWorkoutDetailsScreen({required this.dailyWorkout, super.key});
+  const ShowWorkoutDetailsScreen({
+    required this.dailyWorkout,
+    required this.userId,
+    Key? key
+  }) : super(key: key);
+
+  @override
+  _ShowWorkoutDetailsScreenState createState() => _ShowWorkoutDetailsScreenState();
+}
+
+class _ShowWorkoutDetailsScreenState extends State<ShowWorkoutDetailsScreen> {
+  final supabase = Supabase.instance.client;
+
+  Future<void> _finishWorkout() async {
+    try {
+      // Save the workout log to Supabase
+      await supabase.from('workout_logs').insert({
+        'user_id': widget.userId,
+        'workout_id': widget.dailyWorkout.id,
+        'completed_at': DateTime.now().toIso8601String(),
+        // Add any other relevant data
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Workout completed and logged successfully!')),
+        );
+        Navigator.pop(context);  // Go back to previous screen
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to log workout: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-    final user = authService.supabase.auth.currentUser;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Workout Details'),
         actions: [
           ElevatedButton(
-            onPressed: () {
-              // Finish workout and save to workout log
-            },
+            onPressed: _finishWorkout,
             child: const Text('Finish'),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(dailyWorkout.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text('Week ${dailyWorkout.week} • Day ${dailyWorkout.day}', style: const TextStyle(fontSize: 18)),
-            const SizedBox(height: 20),
-            for (final exercise in dailyWorkout.exercises) ExerciseWidget(exercise: exercise),
-          ],
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.dailyWorkout.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              Text('Week ${widget.dailyWorkout.week} • Day ${widget.dailyWorkout.day}', style: const TextStyle(fontSize: 18)),
+              const SizedBox(height: 20),
+              for (final exercise in widget.dailyWorkout.exercises) ExerciseWidget(exercise: exercise),
+            ],
+          ),
         ),
       ),
     );
@@ -45,7 +78,7 @@ class ShowWorkoutDetailsScreen extends StatelessWidget {
 class ExerciseWidget extends StatelessWidget {
   final Exercise exercise;
 
-  const ExerciseWidget({required this.exercise});
+  const ExerciseWidget({required this.exercise, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +90,9 @@ class ExerciseWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(exercise.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            const Text('Main lift', style: TextStyle(fontSize: 16)),
+            Text(exercise.category ?? 'No category', style: const TextStyle(fontSize: 16)),
+            if (exercise.description != null)
+              Text(exercise.description!, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic)),
             const SizedBox(height: 10),
             for (final set in exercise.sets) SetWidget(set: set),
           ],
@@ -70,34 +105,23 @@ class ExerciseWidget extends StatelessWidget {
 class SetWidget extends StatelessWidget {
   final ExerciseSet set;
 
-  const SetWidget({required this.set});
+  const SetWidget({required this.set, Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Text('${set.intensity}%', style: const TextStyle(fontSize: 16))),
-        Expanded(child: Text('${set.targetKg} kg x ${set.reps}', style: const TextStyle(fontSize: 16))),
-        Expanded(
-          child: TextField(
-            decoration: const InputDecoration(labelText: 'kg'),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              set.actualKg = double.parse(value);
-            },
-          ),
-        ),
-        Expanded(
-          child: TextField(
-            decoration: const InputDecoration(labelText: 'reps'),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              set.actualReps = int.parse(value);
-            },
-          ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(child: Text('Set ${set.setNumber}', style: const TextStyle(fontSize: 16))),
+          Expanded(child: Text('${set.intensity}%', style: const TextStyle(fontSize: 16))),
+          Expanded(child: Text('${set.targetWeight} kg x ${set.targetReps}', style: const TextStyle(fontSize: 16))),
+          if (set.actualWeight != null)
+            Expanded(child: Text('${set.actualWeight} kg', style: const TextStyle(fontSize: 16, color: Colors.green))),
+          if (set.actualReps != null)
+            Expanded(child: Text('${set.actualReps} reps', style: const TextStyle(fontSize: 16, color: Colors.green))),
+        ],
+      ),
     );
   }
 }
-

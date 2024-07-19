@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:wellnash_4/models/user.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wellnash_4/models/user.dart' as models;
 import 'package:wellnash_4/screens/history_screen.dart';
-import 'package:wellnash_4/services/auth_services.dart';
 import 'package:wellnash_4/utils/custom_datetime_line.dart';
 import 'package:wellnash_4/utils/muscle_highlighter.dart';
 import 'profile_screen.dart';
 import 'select_gym_screen.dart';
-import 'package:wellnash_4/providers/user_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,21 +15,41 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  models.User? user;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncUserData();
-    });
+    _fetchUserData();
   }
 
-  void _syncUserData() {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    
-    final user = authService.supabase.auth.currentUser;
-    userProvider.setUser(user as User);
+  Future<void> _fetchUserData() async {
+    final supabase = Supabase.instance.client;
+    final supabaseUser = supabase.auth.currentUser;
+    final userId = supabaseUser?.id;
+    if (userId != null) {
+      try {
+        final userData = await supabase
+            .from('users')
+            .select()
+            .eq('id', userId)
+            .single();
+        setState(() {
+          user = models.User.fromSupabaseUser(supabaseUser!, userData);
+          _isLoading = false;
+        });
+      } catch (e) {
+        print('Error fetching user data: $e');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _onItemTapped(int index) {
@@ -63,9 +81,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.user;
     final screenSize = MediaQuery.of(context).size;
+
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -121,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildWelcomeMessage(User? user, Size screenSize) {
+  Widget _buildWelcomeMessage(models.User? user, Size screenSize) {
     return Container(
       width: screenSize.width * 0.9,
       padding: EdgeInsets.symmetric(
@@ -173,7 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMuscleHighlighter(Size screenSize) {
     return Container(
-      height: screenSize.height * 0.4,
+      height: screenSize.height * 0.6,
       width: screenSize.width * 0.9,
       padding: EdgeInsets.all(screenSize.width * 0.02),
       decoration: BoxDecoration(
