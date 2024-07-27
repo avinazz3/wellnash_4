@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:wellnash_4/screens/auth_screens/getting_user_details.dart';
 import 'package:wellnash_4/screens/auth_screens/login_screen.dart';
-import 'package:wellnash_4/services/auth_services.dart';
+import 'package:wellnash_4/services/supabase_services.dart';
+import 'package:wellnash_4/utils/utils.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -14,7 +17,66 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  final AuthService _authService = AuthService();
+  final SupabaseService _supabaseService = SupabaseService();
+
+  // Get Supabase instance
+  final supabase = Supabase.instance.client;
+
+Future<void> _signUp() async {
+  if (!mounted) return;
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final AuthResponse res = await supabase.auth.signUp(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+
+    if (res.user != null) {
+      // Insert additional user details into your database
+      await supabase.from('users').insert({
+        'id': res.user!.id,
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'profile_completed': false,
+        'password': _passwordController.text,
+      });
+
+      // Create workout log for the new user
+      if (mounted) {
+        await _supabaseService.createWorkoutLog(res.user!.id);
+      }
+
+      if (mounted) {
+        // Navigate to getting user details screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => GettingUserDetails()),
+        );
+      }
+    } else {
+      if (mounted) {
+        showErrorSnackBar(context, message: 'Sign up failed. Please try again.');
+      }
+    }
+  } on AuthException catch (error) {
+    if (mounted) {
+      showErrorSnackBar(context, message: error.message);
+    }
+  } catch (error) {
+    if (mounted) {
+      showErrorSnackBar(context, message: 'An unexpected error occurred');
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -40,11 +102,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           const SizedBox(height: 18),
           Center(
-            child: Container(
-              height: 400, // Adjust height as needed
-              width: 400,  // Adjust width as needed
+            child: SizedBox(
+              height: 600,
+              width: 400,
               child: FittedBox(
-                fit: BoxFit.cover, // Use BoxFit.cover to zoom in
+                fit: BoxFit.cover,
                 child: Image.asset('assets/gym_login.png'),
               ),
             ),
@@ -55,7 +117,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12.0),
-              boxShadow: [
+              boxShadow: const [
                 BoxShadow(
                   color: Colors.black12,
                   blurRadius: 10.0,
@@ -83,25 +145,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          _authService
-                              .signUpUser(
-                            context,
-                            _emailController.text,
-                            _passwordController.text,
-                            _nameController.text,
-                          )
-                              .then((_) {
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          });
-                        },
+                  onPressed: _isLoading ? null : _signUp,
                   child: Text(_isLoading ? 'Signing Up...' : 'Sign Up'),
                 ),
                 const SizedBox(height: 18),
@@ -109,13 +153,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => LoginScreen()),
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[300],
-                    minimumSize: const Size(double.infinity, 20), // Set the desired width and height here
-                    padding: const EdgeInsets.symmetric(vertical: 10), // Adjust vertical padding as needed
+                    minimumSize: const Size(double.infinity, 20),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   child: const Text(
                     "Already have an account? Sign in here",
@@ -126,17 +170,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-extension ContextExtension on BuildContext {
-  void showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(this).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
   }

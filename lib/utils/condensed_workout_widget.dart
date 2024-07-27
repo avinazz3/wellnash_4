@@ -16,7 +16,7 @@ class CondensedWorkoutWidget extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ShowWorkoutDetailsScreen(dailyWorkout: dailyWorkout),
+              builder: (context) => ShowWorkoutDetailsScreen(dailyWorkout: dailyWorkout, userId: '',),
             ),
           );
         },
@@ -26,7 +26,7 @@ class CondensedWorkoutWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                dailyWorkout.title,
+                dailyWorkout.name,
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               Text(

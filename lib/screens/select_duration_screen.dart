@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wellnash_4/services/ml_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'generating_workout_screen.dart';
 import 'package:wellnash_4/screens/workout_details.dart';
 
@@ -10,6 +10,9 @@ class SelectDurationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<int> durations = List.generate(33, (index) => 20 + index * 5);
     int selectedDuration = durations[0];
+    final supabase = Supabase.instance.client;
+    final supabaseUser = supabase.auth.currentUser;
+    final currentUserId = supabaseUser?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -54,13 +57,15 @@ class SelectDurationScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => GeneratingWorkoutScreen(
                       duration: selectedDuration,
+                      userId: currentUserId ?? '',
                     ),
                   ),
                 );
               },
               child: const Text('Generate'),
               style: ElevatedButton.styleFrom(
-                minimumSize: Size(MediaQuery.of(context).size.width * 0.8, 50), // Width of the button
+                minimumSize: Size(MediaQuery.of(context).size.width * 0.8,
+                    50), // Width of the button
                 textStyle: const TextStyle(fontSize: 18),
               ),
             ),

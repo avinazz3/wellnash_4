@@ -1,43 +1,73 @@
 import 'dart:convert';
 
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+
 class User {
-  final int id;
-  final String? email;
+  final String id;
+  final String email;
   final String name;
-  final String? password;
   final String? profilePictureUrl;
-  final String? oauthProvider;
-  final double height;
-  final double weight;
-  final String? activityLevel;
-  final Map<String, dynamic>? injuries; 
   final String? goals;
-  final int workoutDays;
-  final int? workoutRegimeId;
-  final int? currentWorkoutPlanId;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  final String token;
+  final int? workoutDays;
+  final String? workoutRegime;
+  final String? currentWorkoutPlan;
+  final double? height;
+  final double? weight;
+  final String? activityLevel;
+  final String password;
+  bool profileCompleted = false;
 
   User({
     required this.id,
     required this.email,
     required this.name,
-    this.password,
+    required this.password,
     this.profilePictureUrl,
-    this.oauthProvider,
-    this.activityLevel,
-    required this.height,
-    required this.weight,
-    this.injuries,
     this.goals,
-    required this.workoutDays,
-    this.workoutRegimeId,
-    this.currentWorkoutPlanId,
-    this.createdAt,
-    this.updatedAt,
-    required this.token,
+    this.workoutDays,
+    this.workoutRegime,
+    this.currentWorkoutPlan,
+    this.height,
+    this.weight,
+    this.activityLevel,
+    this.profileCompleted = false,
   });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'],
+      email: json['email'],
+      name: json['name'],
+      password: json['password'],
+      profilePictureUrl: json['profile_picture_url'],
+      goals: json['goals'],
+      workoutDays: json['workout_days'],
+      workoutRegime: json['workout_regime'],
+      currentWorkoutPlan: json['current_workout_plan'],
+      height: json['height'],
+      weight: json['weight'],
+      activityLevel: json['activity_level'],
+      profileCompleted: json['profile_completed'] ?? false,
+    );
+  }
+
+  factory User.fromSupabaseUser(supabase.User supabaseUser, Map<String, dynamic> userData) {
+    return User(
+      id: supabaseUser.id,
+      email: supabaseUser.email ?? '',
+      name: userData['name'] ?? '',
+      password: userData['password'] ?? '',
+      profilePictureUrl: userData['profile_picture_url'],
+      goals: userData['goals'],
+      workoutDays: userData['workout_days'] != null ? int.tryParse(userData['workout_days'].toString()) : null,
+      workoutRegime: userData['workout_regime'],
+      currentWorkoutPlan: userData['current_workout_plan'],
+      height: userData['height'] != null ? double.tryParse(userData['height'].toString()) : null,
+      weight: userData['weight'] != null ? double.tryParse(userData['weight'].toString()) : null,
+      activityLevel: userData['activity_level'],
+      profileCompleted: userData['profile_completed'] ?? false,
+    );
+  }
 
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
@@ -46,17 +76,13 @@ class User {
       name: map['name'],
       password: map['password'],
       profilePictureUrl: map['profile_picture_url'],
-      oauthProvider: map['oauth_provider'],
       height: map['height'],
       weight: map['weight'],
-      injuries: map['injuries'],
       goals: map['goals'],
       workoutDays: map['workout_days'],
-      workoutRegimeId: map['workout_regime_id'],
-      currentWorkoutPlanId: map['current_workout_plan_id'],
-      createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : null,
-      updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : null,
-      token: map['token'] ?? '',
+      workoutRegime: map['workout_regime_id'],
+      currentWorkoutPlan: map['current_workout_plan'],
+      activityLevel: map['activity_level'],
     );
   }
 
@@ -67,22 +93,15 @@ class User {
       'name': name,
       'password': password,
       'profile_picture_url': profilePictureUrl,
-      'oauth_provider': oauthProvider,
-      'injuries': injuries,
       'goals': goals,
       'workout_days': workoutDays,
-      'workout_regime_id': workoutRegimeId,
-      'current_workout_plan_id': currentWorkoutPlanId,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
-      'token': token,
+      'workout_regime_id': workoutRegime,
+      'current_workout_plan_id': currentWorkoutPlan,
       'height': height,
       'weight': weight,
       'activity_level': activityLevel ?? '',
     };
   }
-
-  factory User.fromJson(String source) => User.fromMap(json.decode(source));
-
-  String toJson() => json.encode(toMap());
 }
+
+

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wellnash_4/screens/auth_screens/signup_screen.dart';
-import 'package:wellnash_4/services/auth_services.dart';
+import 'package:wellnash_4/screens/home_screen.dart';
+import 'package:wellnash_4/utils/utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,19 +16,80 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _redirecting = false;
+  late final StreamSubscription<AuthState> _authStateSubscription;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final AuthService _authService = AuthService();
-
-  void _onRedirecting() {
-    _redirecting = true;
-  }
 
   @override
   void initState() {
+    _authStateSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (_redirecting) return;
+      final session = data.session;
+      if (session != null) {
+        _redirecting = true;
+        Navigator.of(context).pushReplacement(MaterialPageRoute(
+          builder: (context) => const HomeScreen(),
+        ));
+      }
+    });
     super.initState();
-    _authService.authStateSubscription(context, _onRedirecting);
   }
+
+  @override
+  void dispose() {
+    _authStateSubscription.cancel();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleError(dynamic error) {
+  if (!mounted) return;
+  
+  if (error is AuthException) {
+    showErrorSnackBar(context, message: error.message);
+  } else {
+    showErrorSnackBar(context, message: 'Unexpected error occurred');
+  }
+}
+
+Future<void> _signIn() async {
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    await Supabase.instance.client.auth.signInWithPassword(
+      email: _emailController.text,
+      password: _passwordController.text,
+    );
+  } catch (error) {
+    _handleError(error);
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}
+
+Future<void> _resetPassword() async {
+  final email = _emailController.text.trim();
+  if (email.isEmpty) {
+    _handleError(const AuthException('Please enter your email'));
+    return;
+  }
+
+  try {
+    await Supabase.instance.client.auth.resetPasswordForEmail(email);
+    if (mounted) {
+      showSnackBar(context, message: 'Password reset email sent');
+    }
+  } catch (error) {
+    _handleError(error);
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -40,10 +103,10 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(height: 18),
           Center(
             child: Container(
-              height: 400, // Adjust height as needed
-              width: 400,  // Adjust width as needed
+              height: 400,
+              width: 400,
               child: FittedBox(
-                fit: BoxFit.cover, // Use BoxFit.cover to zoom in
+                fit: BoxFit.cover,
                 child: Image.asset('assets/gym_login.png'),
               ),
             ),
@@ -85,24 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: _isLoading
-                      ? null
-                      : () {
-                          setState(() {
-                            _isLoading = true;
-                          });
-                          _authService
-                              .signInUser(
-                            context,
-                            _emailController.text,
-                            _passwordController.text,
-                          )
-                              .then((_) {
-                            setState(() {
-                              _isLoading = false;
-                            });
-                          });
-                        },
+                  onPressed: _isLoading ? null : _signIn,
                   child: Text(_isLoading ? 'Signing In...' : 'Sign In'),
                 ),
                 const SizedBox(height: 18),
@@ -115,21 +161,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[300],
-                    minimumSize: const Size(double.infinity, 20), // Set the desired width and height here
-                    padding: const EdgeInsets.symmetric(vertical: 10), // Adjust vertical padding as needed
+                    minimumSize: const Size(double.infinity, 20),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   child: const Text("Don't have an account? Sign up here", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton(
-                  onPressed: () {
-                    final email = _emailController.text.trim();
-                    _authService.resetPassword(context, email);
-                  },
+                  onPressed: _resetPassword,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey[300],
-                    minimumSize: const Size(double.infinity, 20), // Set the desired width and height here
-                    padding: const EdgeInsets.symmetric(vertical: 10), // Adjust vertical padding as needed
+                    minimumSize: const Size(double.infinity, 20),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                   child: const Text('Reset Password', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
                 ),
