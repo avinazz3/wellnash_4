@@ -1,5 +1,5 @@
 class Exercise {
-  final String id;
+  String id;
   final String name;
   final String? category; // e.g., 'Main lift', 'Accessory', etc.
   final String? description;
@@ -28,6 +28,24 @@ class Exercise {
     );
   }
 
+  Exercise copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? category,
+    int? order,
+    List<ExerciseSet>? sets,
+  }) {
+    return Exercise(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      order: order ?? this.order,
+      sets: sets ?? this.sets,
+    );
+  }
+  
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -41,7 +59,7 @@ class Exercise {
 }
 
 class ExerciseSet {
-  final String id;
+  late String id;
   final int setNumber;
   final int intensity;
   final double targetWeight;

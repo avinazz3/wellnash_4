@@ -61,11 +61,12 @@ class MLService {
       }
 
       final workoutId = response.data['workoutId'];
-      if (workoutId == null) {
-        throw Exception('Workout ID not returned from function');
+      if (workoutId == null || workoutId.toString().isEmpty) {
+        throw Exception('Invalid or missing workout ID returned from function');
       }
 
-      return await getDailyWorkoutWithExercises(workoutId);
+      print('Workout ID received: $workoutId');
+      return await getDailyWorkoutWithExercises(workoutId.toString());
     } catch (e) {
       print('Error generating workout: $e');
       if (e is PostgrestException) {

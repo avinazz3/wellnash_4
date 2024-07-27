@@ -161,8 +161,20 @@ class SupabaseService {
     return dailyWorkout;
   }
 
-  Future<void> addSet(String dailyWorkoutExerciseId, ExerciseSet newSet) async {
+  Future<void> addSet(String exerciseId, String dailyWorkoutId, ExerciseSet newSet) async {
     try {
+      // First, fetch the dailyworkout_exercise_id
+      final dailyWorkoutExerciseResponse = await supabase
+          .from('dailyworkout_exercises')
+          .select('id')
+          .eq('exercise_id', exerciseId)
+          .eq('dailyworkout_id', dailyWorkoutId)
+          .single();
+
+
+      final dailyWorkoutExerciseId = dailyWorkoutExerciseResponse['id'];
+
+      // Now insert the new set
       final response = await supabase.from('exercise_sets').insert({
         'dailyworkout_exercise_id': dailyWorkoutExerciseId,
         'set_number': newSet.setNumber,
@@ -171,7 +183,10 @@ class SupabaseService {
         'actual_weight': newSet.actualWeight,
         'actual_reps': newSet.actualReps,
       }).select();
-      
+
+
+      // Update the newSet with the generated ID
+      newSet.id = response[0]['id'];
     } catch (e) {
       print('Error adding set: $e');
       rethrow;
@@ -189,23 +204,41 @@ class SupabaseService {
     }).eq('id', setId);
   }
 
-  Future<void> addExercise(String dailyWorkoutId, Exercise newExercise) async {
+ Future<void> addExercise(String dailyWorkoutId, Exercise newExercise) async {
+  try {
+    // Insert the new exercise
     final exerciseResponse = await supabase.from('exercises').insert({
       'name': newExercise.name,
       'description': newExercise.description,
       'category': newExercise.category,
     }).select().single();
 
+    // Get the new exercise ID
+    final exerciseId = exerciseResponse['id'];
+
+    // Insert the dailyworkout_exercise relationship
     final dailyWorkoutExerciseResponse = await supabase.from('dailyworkout_exercises').insert({
       'dailyworkout_id': dailyWorkoutId,
-      'exercise_id': exerciseResponse['id'],
+      'exercise_id': exerciseId,
       'exercise_order': newExercise.order,
     }).select().single();
 
+    // Get the dailyworkout_exercise ID
+    final dailyWorkoutExerciseId = dailyWorkoutExerciseResponse['id'];
+
+    // Add sets for the new exercise
     for (var set in newExercise.sets) {
-      await addSet(dailyWorkoutExerciseResponse['id'], set);
+      await addSet(exerciseId, dailyWorkoutId, set);
     }
+
+    // Update the newExercise object with the generated ID
+    newExercise.id = exerciseId;
+
+  } catch (e) {
+    print('Error adding exercise: $e');
+    rethrow;
   }
+}
 
   Future<void> deleteExercise(String exerciseId) async {
     // First, delete all sets associated with this exercise

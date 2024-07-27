@@ -27,8 +27,8 @@ serve(async (req) => {
       }
 
       // Create Supabase client
-      const supabaseUrl = env.get('SUPABASE_URL')
-      const supabaseServiceKey = env.get('SUPABASE_ANON_KEY')
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')
+      const supabaseServiceKey = Deno.env.get('SUPABASE_ANON_KEY')
       if (!supabaseUrl || !supabaseServiceKey) {
         throw new Error('Missing Supabase configuration')
       }
@@ -58,33 +58,164 @@ serve(async (req) => {
 
       // Create Anthropic client
       const anthropic = new Anthropic({
-        apiKey: env.get('ANTHROPIC_API_KEY'),
+        apiKey: Deno.env.get('ANTHROPIC_API_KEY'),
       })
 
-      const prompt = `
-        Generate a workout plan based on the following user data:
-        Goals: ${userData.goals}
-        Current regime: ${userData.workout_regime}
-        Requested duration: ${duration} minutes
+      // Fetch user's past workouts
+      console.log('Fetching past workouts for user:', userId)
+      let pastWorkouts
+      try {
+        const { data, error } = await supabase
+          .from('dailyworkouts')
+          .select(`
+      id,
+      date,
+      dailyworkout_exercises (
+        exercise_id,
+        exercises (
+          name,
+          category
+        ),
+        exercise_sets (
+          target_weight,
+          target_reps,
+          actual_weight,
+          actual_reps
+        )
+      )
+    `)
+          .eq('user_id', userId)
+          .order('date', { ascending: false })
+          .limit(10)
 
-        Provide the workout in the following JSON format:
-        {
-          "exercises": [
-            {
-              "name": "Exercise Name",
-              "description": "Exercise Description",
-              "category": "Exercise Category (e.g., Main lift, Accessory)",
-              "sets": [
-                {
-                  "setNumber": 1,
-                  "targetWeight": 100,
-                  "targetReps": 8
+        if (error) {
+          console.error('Supabase error fetching past workouts:', error)
+          throw error
+        }
+
+        if (!data) {
+          console.warn('No data returned from past workouts query')
+          pastWorkouts = []
+        } else {
+          pastWorkouts = data
+          console.log(`Fetched ${pastWorkouts.length} past workouts`)
+        }
+      } catch (error) {
+        console.error('Error fetching past workouts:', error)
+        throw error
+      }
+
+      let workoutHistory = ''
+      let bmiInfo = ''
+
+      if (pastWorkouts && pastWorkouts.length > 0) {
+        console.log('Processing past workouts')
+        workoutHistory = `Past workouts:\n`
+        pastWorkouts.forEach((workout, index) => {
+          console.log(`Processing workout ${index + 1}:`, workout)
+          workoutHistory += `Date: ${workout.date}\nExercises:\n`
+
+          if (!workout.dailyworkout_exercises || workout.dailyworkout_exercises.length === 0) {
+            console.warn(`No exercises found for workout on ${workout.date}`)
+            workoutHistory += `  No exercises recorded\n`
+          } else {
+            workout.dailyworkout_exercises.forEach(exercise => {
+              if (!exercise.exercises) {
+                console.warn(`Missing exercise data for exercise_id: ${exercise.exercise_id}`)
+                workoutHistory += `  Unknown exercise\n`
+              } else {
+                workoutHistory += `  Exercise: ${exercise.exercises.name || 'Unknown'} (${exercise.exercises.category || 'Unknown'})\n  Sets:\n`
+
+                if (!exercise.exercise_sets || exercise.exercise_sets.length === 0) {
+                  console.warn(`No sets found for exercise: ${exercise.exercises.name}`)
+                  workoutHistory += `    No sets recorded\n`
+                } else {
+                  exercise.exercise_sets.forEach(set => {
+                    workoutHistory += `    Target: ${set.target_weight || 'N/A'}kg x ${set.target_reps || 'N/A'} reps\n`
+                    workoutHistory += `    Actual: ${set.actual_weight || 'N/A'}kg x ${set.actual_reps || 'N/A'} reps\n`
+                  })
                 }
-              ]
+              }
+            })
+          }
+          workoutHistory += '\n'
+        })
+      } else {
+        console.log('No past workouts found, fetching user metrics')
+        // Fetch user's height and weight if no past workouts
+        try {
+          const { data: userMetrics, error: metricsError } = await supabase
+            .from('users')
+            .select('height, weight')
+            .eq('id', userId)
+            .single()
+
+          if (metricsError) {
+            console.error('Error fetching user metrics:', metricsError)
+            throw metricsError
+          }
+
+          if (userMetrics && userMetrics.height && userMetrics.weight) {
+            const heightInMeters = userMetrics.height / 100
+            const bmi = userMetrics.weight / (heightInMeters * heightInMeters)
+            bmiInfo = `User BMI: ${bmi.toFixed(2)} (Height: ${userMetrics.height}cm, Weight: ${userMetrics.weight}kg)`
+            console.log('BMI info calculated:', bmiInfo)
+          } else {
+            console.warn('Incomplete user metrics:', userMetrics)
+            bmiInfo = 'User metrics not available'
+          }
+        } catch (error) {
+          console.error('Error in fetching user metrics:', error)
+          bmiInfo = 'Error fetching user metrics'
+        }
+      }
+
+      console.log('Workout history or BMI info prepared')
+
+      // Fetch available exercises
+      const { data: availableExercises, error: exercisesError } = await supabase
+        .from('exercises')
+        .select('name, category, description')
+
+      if (exercisesError) throw exercisesError
+
+      // Modify the prompt to include available exercises and past workouts or BMI
+      const prompt = `
+    Generate a workout plan based on the following user data:
+    Goals: ${userData.goals}
+    Current regime: ${userData.workout_regime}
+    Requested duration: ${duration} minutes
+
+    ${workoutHistory || bmiInfo}
+
+    Available Exercises:
+    ${availableExercises.map(exercise => `
+      - ${exercise.name} (${exercise.category}): ${exercise.description}
+    `).join('')}
+
+    Important: Only use exercises from the provided list of available exercises.
+
+    Provide the workout in the following JSON format:
+    {
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "description": "Exercise Description - keep this very short!",
+          "category": "Exercise Category (e.g., Main lift, Accessory)",
+          "sets": [
+            {
+              "setNumber": 1,
+              "targetWeight": 100,
+              "targetReps": 8
             }
           ]
         }
-      `
+      ]
+    }
+
+    Based on the user's history or BMI, adjust the target weights and reps appropriately.
+    If using BMI, suggest appropriate starting weights for a beginner.
+  `
 
       // Generate workout
       const message = await anthropic.messages.create({
@@ -92,7 +223,6 @@ serve(async (req) => {
         max_tokens: 1024,
         messages: [{ role: "user", content: prompt }],
       })
-
       // Extract JSON from the content
       const content = message.content[0].text
       const jsonMatch = content.match(/\{[\s\S]*\}/)
@@ -100,28 +230,11 @@ serve(async (req) => {
 
       const workoutPlan = JSON.parse(jsonMatch[0])
 
-      // Get or create workout log
-      let { data: workoutLog, error: workoutLogError } = await supabase
-        .from('workout_logs')
-        .select('id')
-        .eq('user_id', userId)
-        .single()
-
-      if (workoutLogError) {
-        const { data: newWorkoutLog, error: newWorkoutLogError } = await supabase
-          .from('workout_logs')
-          .insert({ user_id: userId })
-          .select()
-          .single()
-        if (newWorkoutLogError) throw newWorkoutLogError
-        workoutLog = newWorkoutLog
-      }
-
       // Create new daily workout
       const { data: dailyWorkout, error: dailyWorkoutError } = await supabase
         .from('dailyworkouts')
         .insert({
-          workout_log_id: workoutLog.id,
+          user_id: userId,  // Changed from workout_log_id to user_id
           name: `Workout ${new Date().toISOString().split('T')[0]}`,
           date: new Date().toISOString(),
           workout_regime: userData.workout_regime,
@@ -134,7 +247,7 @@ serve(async (req) => {
       // Insert exercises and sets
       for (let i = 0; i < workoutPlan.exercises.length; i++) {
         const exercise = workoutPlan.exercises[i];
-        
+
         // Insert or fetch exercise
         let { data: existingExercise, error: exerciseFetchError } = await supabase
           .from('exercises')
@@ -205,14 +318,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage, 
+      JSON.stringify({
+        error: errorMessage,
         details: errorDetails,
         type: error.constructor.name
       }),
-      { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }

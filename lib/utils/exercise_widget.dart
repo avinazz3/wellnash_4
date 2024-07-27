@@ -9,6 +9,7 @@ class ExerciseWidget extends StatefulWidget {
   final SupabaseService supabaseServices;
   final VoidCallback onExerciseUpdated;
   final Function(Exercise) onExerciseDeleted;
+  final String dailyWorkoutId;
 
   const ExerciseWidget({
     required this.exercise,
@@ -16,6 +17,7 @@ class ExerciseWidget extends StatefulWidget {
     required this.supabaseServices,
     required this.onExerciseUpdated,
     required this.onExerciseDeleted,
+    required this.dailyWorkoutId, 
     Key? key,
   }) : super(key: key);
 
@@ -26,26 +28,34 @@ class ExerciseWidget extends StatefulWidget {
 class _ExerciseWidgetState extends State<ExerciseWidget> {
 
   Future<void> _addSet() async {
-    final newSetNumber = widget.exercise.sets.length + 1;
-    final newSet = ExerciseSet(
-      id: '',
-      setNumber: newSetNumber,
-      targetWeight: widget.exercise.sets.last.targetWeight,
-      targetReps: widget.exercise.sets.last.targetReps,
-    );
+  final newSetNumber = widget.exercise.sets.length + 1;
+  final newSet = ExerciseSet(
+    id: '',
+    setNumber: newSetNumber,
+    targetWeight: widget.exercise.sets.isNotEmpty 
+        ? widget.exercise.sets.last.targetWeight 
+        : 0, // Default to 0 if there are no existing sets
+    targetReps: widget.exercise.sets.isNotEmpty 
+        ? widget.exercise.sets.last.targetReps 
+        : 0, // Default to 0 if there are no existing sets
+  );
 
-    try {
-      await widget.supabaseServices.addSet(widget.exercise.id, newSet);
-      setState(() {
-        widget.exercise.sets.add(newSet);
-      });
-      widget.onExerciseUpdated();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add set: $e')),
-      );
-    }
+  try {
+    await widget.supabaseServices.addSet(
+      widget.exercise.id,
+      widget.dailyWorkoutId, // Make sure this property is available in the widget
+      newSet
+    );
+    setState(() {
+      widget.exercise.sets.add(newSet);
+    });
+    widget.onExerciseUpdated();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to add set: $e')),
+    );
   }
+}
 
   void _deleteSet(ExerciseSet set) async {
     await widget.supabaseServices.deleteSet(set.id);

@@ -122,6 +122,8 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   Future<void> _finishWorkout() async {
+  print('Starting _finishWorkout method');
+  
   // Show confirmation dialog
   bool? confirm = await showDialog<bool>(
     context: context,
@@ -143,38 +145,101 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     },
   );
 
+  print('Confirmation dialog result: $confirm');
+
   if (confirm == true) {
+    print('Workout confirmed to finish');
     _timer.cancel();
     
     // Update the database
     final now = DateTime.now();
-    await supabase.from('dailyworkouts').update({
-      'time_ended': now.toIso8601String(),
-      'duration': _duration.inSeconds,
-    }).eq('id', widget.dailyWorkout.id);
+    try {
+      await supabase.from('dailyworkouts').update({
+        'time_ended': now.toIso8601String(),
+      }).eq('id', widget.dailyWorkout.id);
 
-    // Show congratulations message
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          title: Text('Congratulations!'),
-          content: Text('You have finished your workout for today!'),
+      print('Database updated successfully');
+
+      // Check if the widget is still mounted before proceeding
+      if (!mounted) {
+        print('Widget is not mounted after database update');
+        return;
+      }
+
+      // Use a try-catch block for showing the dialog
+      bool dialogShown = false;
+      try {
+        print('Attempting to show congratulations dialog');
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Congratulations!'),
+              content: const Text('You have finished your workout for today!'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
         );
-      },
-    );
+        dialogShown = true;
+        print('Congratulations dialog shown successfully');
+      } catch (e) {
+        print('Error showing congratulations dialog: $e');
+      }
 
-    // Wait for 3 seconds
-    await Future.delayed(const Duration(seconds: 2));
+      // If dialog was shown, wait for 2 seconds, otherwise proceed immediately
+      if (dialogShown) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
 
-    // Check if the widget is still mounted before proceeding
-    if (!mounted) return;
+      // Check if the widget is still mounted before proceeding
+      if (!mounted) {
+        print('Widget is not mounted after delay');
+        return;
+      }
     
-    // Navigate to home screen
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-    );
+      print('Attempting to navigate to HomeScreen');
+      // Use a try-catch block for navigation
+      try {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+        print('Navigation to HomeScreen initiated');
+      } catch (e) {
+        print('Error navigating to HomeScreen: $e');
+        // Attempt to use a different navigation method
+        try {
+          print('Attempting alternative navigation method');
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (Route<dynamic> route) => false,
+          );
+          print('Alternative navigation method initiated');
+        } catch (e) {
+          print('Error with alternative navigation method: $e');
+        }
+      }
+    } catch (e) {
+      print('Error finishing workout: $e');
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error finishing workout: $e')),
+        );
+      } else {
+        print('Widget is not mounted, cannot show error snackbar');
+      }
+    }
+  } else {
+    print('Workout finish cancelled');
   }
 }
 
@@ -312,7 +377,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
         actions: [
           TextButton(
             onPressed: _finishWorkout,
-            child: const Text('Finish', style: TextStyle(color: Colors.white)),
+            child: const Text('Finish', style: TextStyle(color: Color.fromARGB(255, 249, 122, 3))),
           ),
         ],
       ),
@@ -353,6 +418,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               itemBuilder: (context, index) {
                 if (index < widget.dailyWorkout.exercises.length) {
                   return ExerciseWidget(
+                    dailyWorkoutId: widget.dailyWorkout.id,
                     exercise: widget.dailyWorkout.exercises[index],
                     exerciseNumber: index + 1,
                     supabaseServices: _supabaseServices,
