@@ -16,7 +16,7 @@ class CondensedWorkoutWidget extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ShowWorkoutDetailsScreen(dailyWorkout: dailyWorkout, userId: '',),
+              builder: (context) => ShowWorkoutDetailsScreen(dailyWorkout: dailyWorkout),
             ),
           );
         },

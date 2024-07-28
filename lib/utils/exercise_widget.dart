@@ -296,15 +296,6 @@ class _ExerciseWidgetState extends State<ExerciseWidget> {
               child: const Text('+ Add Set'),
             ),
             const SizedBox(height: 10),
-            ElevatedButton.icon(
-              onPressed: _showRestTimer,
-              icon: const Icon(Icons.timer),
-              label: const Text('Rest Timer'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple[100],
-                foregroundColor: Colors.purple,
-              ),
-            ),
           ],
         ),
       ),

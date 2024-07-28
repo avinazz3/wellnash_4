@@ -27,60 +27,79 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _loadWorkoutLogs();
   }
 
- Future<void> _loadWorkoutLogs() async {
-  try {
-    final userId = supabase.auth.currentUser?.id;
-    if (userId != null) {
-      // First, fetch the user's workout log
-      final workoutLogResponse = await supabase
-          .from('workout_logs')
-          .select()
-          .eq('user_id', userId)
-          .single();
+  Future<void> _loadWorkoutLogs() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
 
-      if (workoutLogResponse != null) {
-        // Now fetch the daily workouts associated with this workout log
+      if (userId != null) {
+        print('Fetching workouts for user: $userId');
+
         final dailyWorkoutsResponse = await supabase
             .from('dailyworkouts')
             .select()
-            .eq('workout_log_id', workoutLogResponse['id'])
+            .eq('user_id', userId)
             .order('date', ascending: false);
 
-        setState(() {
-          workoutLogs = dailyWorkoutsResponse.map((log) => DailyWorkout.fromJson(log)).toList();
-          _isLoading = false;
-        });
+        //print('Raw response: $dailyWorkoutsResponse');
+
+        if (dailyWorkoutsResponse is List) {
+          setState(() {
+            workoutLogs = dailyWorkoutsResponse
+                .map((log) => DailyWorkout.fromJson(log))
+                .toList();
+            _isLoading = false;
+          });
+          print('Parsed ${workoutLogs.length} workouts');
+        } else {
+          print(
+              'Unexpected response type: ${dailyWorkoutsResponse.runtimeType}');
+          setState(() {
+            workoutLogs = [];
+            _isLoading = false;
+          });
+        }
       } else {
-        // Handle case where user doesn't have a workout log
-        print('No workout log found for user');
+        print('No user logged in');
         setState(() {
           workoutLogs = [];
           _isLoading = false;
         });
       }
+    } catch (e) {
+      print('Error loading workout logs: $e');
+      setState(() {
+        workoutLogs = [];
+        _isLoading = false;
+      });
     }
-  } catch (e) {
-    print('Error loading workout logs: $e');
-    setState(() {
-      _isLoading = false;
-    });
   }
-}
 
   Future<DailyWorkout?> _getFullWorkoutDetails(String workoutId) async {
-    try {
-      final workoutData = await supabase
-          .from('daily_workouts')
-          .select('*, exercises(*)')
-          .eq('id', workoutId)
-          .single();
-      
-      return DailyWorkout.fromJson(workoutData);
-    } catch (e) {
-      print('Error fetching full workout details: $e');
-      return null;
-    }
+  try {
+    final workoutData = await supabase
+        .from('dailyworkouts')
+        .select('''
+          *,
+          exercises:dailyworkout_exercises (
+            id,
+            exercise:exercises (
+              id,
+              name,
+              description,
+              category
+            ),
+            exercise_sets (*)
+          )
+        ''')
+        .eq('id', workoutId)
+        .single();
+
+    return DailyWorkout.fromJson(workoutData);
+  } catch (e) {
+    print('Error fetching full workout details: $e');
+    return null;
   }
+}
 
   void _onWorkoutTapped(DailyWorkout workout) async {
     final fullWorkout = await _getFullWorkoutDetails(workout.id);
@@ -90,17 +109,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
         MaterialPageRoute(
           builder: (context) => ShowWorkoutDetailsScreen(
             dailyWorkout: fullWorkout,
-            userId: supabase.auth.currentUser!.id,
+            //userId: supabase.auth.currentUser!.id,
           ),
         ),
       );
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load workout details')),
+        const SnackBar(content: Text('Failed to load workout details')),
       );
     }
   }
-
 
   void _onDateSelected(DateTime date) {
     setState(() {
@@ -116,9 +134,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   List<DailyWorkout> _filteredWorkoutLogs() {
     if (selectedDate == null) return workoutLogs;
-    return workoutLogs.where((log) => log.date.year == selectedDate!.year && 
-                                      log.date.month == selectedDate!.month && 
-                                      log.date.day == selectedDate!.day).toList();
+    return workoutLogs
+        .where((log) =>
+            log.date.year == selectedDate!.year &&
+            log.date.month == selectedDate!.month &&
+            log.date.day == selectedDate!.day)
+        .toList();
   }
 
   void _onItemTapped(int index) {
@@ -153,37 +174,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         title: const Text('History'),
       ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : Column(
-          children: [
-            CalendarDatePicker(
-              initialDate: DateTime.now(),
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2030),
-              onDateChanged: _onDateSelected,
-            ),
-            if (selectedDate != null)
-              TextButton(
-                onPressed: _clearFilter,
-                child: const Text('Clear'),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  CalendarDatePicker(
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2030),
+                    onDateChanged: _onDateSelected,
+                  ),
+                  if (selectedDate != null)
+                    TextButton(
+                      onPressed: _clearFilter,
+                      child: const Text('Clear'),
+                    ),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: filteredLogs.length,
+                    itemBuilder: (context, index) {
+                      final log = filteredLogs[index];
+                      return GestureDetector(
+                        onTap: () => _onWorkoutTapped(log),
+                        child: CondensedWorkoutWidget(dailyWorkout: log),
+                      );
+                    },
+                  ),
+                ],
               ),
-            Expanded(
-              child: filteredLogs.isEmpty
-                ? Center(child: Text('No workout logs found'))
-                : ListView.builder(
-                  itemCount: filteredLogs.length,
-                  itemBuilder: (context, index) {
-                    final log = filteredLogs[index];
-                    return GestureDetector(
-                      onTap: () => _onWorkoutTapped(log),
-                      child: CondensedWorkoutWidget(dailyWorkout: log),
-                    );
-                  },
-                ),
             ),
-          ],
-        ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _onItemTapped,

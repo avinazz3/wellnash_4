@@ -16,17 +16,16 @@ class Exercise {
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
-    return Exercise(
-      id: json['id'],
-      name: json['name'],
-      category: json['category'],
-      description: json['description'],
-      order: json['order'],
-      sets: (json['sets'] as List<dynamic>)
-          .map((setJson) => ExerciseSet.fromJson(setJson))
-          .toList(),
-    );
-  }
+  return Exercise(
+    id: json['id'],
+    name: json['name'],
+    description: json['description'],
+    category: json['category'],
+    sets: (json['sets'] as List<dynamic>?)
+        ?.map((setData) => ExerciseSet.fromJson(setData))
+        .toList() ?? [], order: json['order'],
+  );
+}
 
   Exercise copyWith({
     String? id,

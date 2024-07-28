@@ -28,6 +28,7 @@ class _WorkoutPreferencesState extends State<WorkoutPreferences> {
       await supabase.from('users').update({
         'workout_days': _workoutDays,
         'workout_regime': _workoutRegime,
+        'profile_completed': true,
       }).eq('id', userId);
 
       if (mounted) {

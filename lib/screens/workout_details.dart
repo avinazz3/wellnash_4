@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:numberpicker/numberpicker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:wellnash_4/models/daily_workout.dart';
 import 'package:wellnash_4/models/exercise.dart';
@@ -53,47 +53,60 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   void _showRestTimerSelector() {
-    showDialog(
+    int minutes = _restTimerDuration ~/ 60;
+    int seconds = _restTimerDuration % 60;
+
+    showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Set Rest Timer'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+        return Container(
+          height: 300,
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: Column(
             children: [
-              NumberPicker(
-                minValue: 0,
-                maxValue: 10,
-                value: _restTimerDuration ~/ 60,
-                onChanged: (value) => setState(() => _restTimerDuration = value * 60),
-                itemHeight: 40,
-                axis: Axis.horizontal,
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        itemExtent: 32,
+                        onSelectedItemChanged: (int value) {
+                          minutes = value;
+                        },
+                        children: List<Widget>.generate(11, (int index) {
+                          return Center(child: Text('$index'));
+                        }),
+                      ),
+                    ),
+                    const Text('min'),
+                    Expanded(
+                      child: CupertinoPicker(
+                        itemExtent: 32,
+                        onSelectedItemChanged: (int value) {
+                          seconds = value;
+                        },
+                        children: List<Widget>.generate(60, (int index) {
+                          return Center(child: Text('$index'));
+                        }),
+                      ),
+                    ),
+                    const Text('sec'),
+                  ],
+                ),
               ),
-              const Text('Minutes'),
-              NumberPicker(
-                minValue: 0,
-                maxValue: 59,
-                value: _restTimerDuration % 60,
-                onChanged: (value) => setState(() => _restTimerDuration = (_restTimerDuration ~/ 60) * 60 + value),
-                itemHeight: 40,
-                axis: Axis.horizontal,
+              CupertinoButton(
+                child: const Text('Set'),
+                onPressed: () {
+                  setState(() {
+                    _restTimerDuration = minutes * 60 + seconds;
+                  });
+                  Navigator.of(context).pop();
+                  _startRestTimer();
+                },
               ),
-              const Text('Seconds'),
             ],
           ),
-          actions: [
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: const Text('Start'),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _startRestTimer();
-              },
-            ),
-          ],
         );
       },
     );
@@ -122,126 +135,126 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   Future<void> _finishWorkout() async {
-  print('Starting _finishWorkout method');
-  
-  // Show confirmation dialog
-  bool? confirm = await showDialog<bool>(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Finish Workout'),
-        content: const Text('Are you sure you want to finish this workout?'),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          TextButton(
-            child: const Text('Confirm'),
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      );
-    },
-  );
-
-  print('Confirmation dialog result: $confirm');
-
-  if (confirm == true) {
-    print('Workout confirmed to finish');
-    _timer.cancel();
+    print('Starting _finishWorkout method');
     
-    // Update the database
-    final now = DateTime.now();
-    try {
-      await supabase.from('dailyworkouts').update({
-        'time_ended': now.toIso8601String(),
-      }).eq('id', widget.dailyWorkout.id);
-
-      print('Database updated successfully');
-
-      // Check if the widget is still mounted before proceeding
-      if (!mounted) {
-        print('Widget is not mounted after database update');
-        return;
-      }
-
-      // Use a try-catch block for showing the dialog
-      bool dialogShown = false;
-      try {
-        print('Attempting to show congratulations dialog');
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: const Text('Congratulations!'),
-              content: const Text('You have finished your workout for today!'),
-              actions: <Widget>[
-                TextButton(
-                  child: const Text('OK'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
+    // Show confirmation dialog
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Finish Workout'),
+          content: const Text('Are you sure you want to finish this workout?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
+          ],
         );
-        dialogShown = true;
-        print('Congratulations dialog shown successfully');
-      } catch (e) {
-        print('Error showing congratulations dialog: $e');
-      }
+      },
+    );
 
-      // If dialog was shown, wait for 2 seconds, otherwise proceed immediately
-      if (dialogShown) {
-        await Future.delayed(const Duration(seconds: 2));
-      }
+    print('Confirmation dialog result: $confirm');
 
-      // Check if the widget is still mounted before proceeding
-      if (!mounted) {
-        print('Widget is not mounted after delay');
-        return;
-      }
-    
-      print('Attempting to navigate to HomeScreen');
-      // Use a try-catch block for navigation
+    if (confirm == true) {
+      print('Workout confirmed to finish');
+      _timer.cancel();
+      
+      // Update the database
+      final now = DateTime.now();
       try {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-        print('Navigation to HomeScreen initiated');
-      } catch (e) {
-        print('Error navigating to HomeScreen: $e');
-        // Attempt to use a different navigation method
+        await supabase.from('dailyworkouts').update({
+          'time_ended': now.toIso8601String(),
+        }).eq('id', widget.dailyWorkout.id);
+
+        print('Database updated successfully');
+
+        // Check if the widget is still mounted before proceeding
+        if (!mounted) {
+          print('Widget is not mounted after database update');
+          return;
+        }
+
+        // Use a try-catch block for showing the dialog
+        bool dialogShown = false;
         try {
-          print('Attempting alternative navigation method');
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const HomeScreen()),
-            (Route<dynamic> route) => false,
+          print('Attempting to show congratulations dialog');
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Congratulations!'),
+                content: const Text('You have finished your workout for today!'),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              );
+            },
           );
-          print('Alternative navigation method initiated');
+          dialogShown = true;
+          print('Congratulations dialog shown successfully');
         } catch (e) {
-          print('Error with alternative navigation method: $e');
+          print('Error showing congratulations dialog: $e');
+        }
+
+        // If dialog was shown, wait for 2 seconds, otherwise proceed immediately
+        if (dialogShown) {
+          await Future.delayed(const Duration(seconds: 2));
+        }
+
+        // Check if the widget is still mounted before proceeding
+        if (!mounted) {
+          print('Widget is not mounted after delay');
+          return;
+        }
+      
+        print('Attempting to navigate to HomeScreen');
+        // Use a try-catch block for navigation
+        try {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+          print('Navigation to HomeScreen initiated');
+        } catch (e) {
+          print('Error navigating to HomeScreen: $e');
+          // Attempt to use a different navigation method
+          try {
+            print('Attempting alternative navigation method');
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+              (Route<dynamic> route) => false,
+            );
+            print('Alternative navigation method initiated');
+          } catch (e) {
+            print('Error with alternative navigation method: $e');
+          }
+        }
+      } catch (e) {
+        print('Error finishing workout: $e');
+        // Show error message to user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error finishing workout: $e')),
+          );
+        } else {
+          print('Widget is not mounted, cannot show error snackbar');
         }
       }
-    } catch (e) {
-      print('Error finishing workout: $e');
-      // Show error message to user
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error finishing workout: $e')),
-        );
-      } else {
-        print('Widget is not mounted, cannot show error snackbar');
-      }
+    } else {
+      print('Workout finish cancelled');
     }
-  } else {
-    print('Workout finish cancelled');
   }
-}
 
   void _showRestTimer() {
     showDialog(
@@ -280,88 +293,88 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
   }
 
   void _addExercise() {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      String name = '';
-      String description = '';
-      String category = '';
-      double targetWeight = 0;
-      int targetReps = 0;
-      int numberOfSets = 1;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String name = '';
+        String description = '';
+        String category = '';
+        double targetWeight = 0;
+        int targetReps = 0;
+        int numberOfSets = 1;
 
-      return AlertDialog(
-        title: const Text('Add Exercise'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(
-                decoration: const InputDecoration(labelText: 'Exercise Name'),
-                onChanged: (value) => name = value,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Description'),
-                onChanged: (value) => description = value,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Category'),
-                onChanged: (value) => category = value,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Target Weight (kg)'),
-                keyboardType: TextInputType.number,
-                onChanged: (value) => targetWeight = double.tryParse(value) ?? 0,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Target Reps'),
-                keyboardType: TextInputType.number,
-                onChanged: (value) => targetReps = int.tryParse(value) ?? 0,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Number of Sets'),
-                keyboardType: TextInputType.number,
-                onChanged: (value) => numberOfSets = int.tryParse(value) ?? 1,
-              ),
-            ],
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          TextButton(
-            child: const Text('Add'),
-            onPressed: () async {
-              final newExercise = Exercise(
-                id: '', // Will be set by the database
-                name: name,
-                description: description,
-                category: category,
-                order: widget.dailyWorkout.exercises.length + 1,
-                sets: List.generate(
-                  numberOfSets,
-                  (index) => ExerciseSet(
-                    id: '',
-                    setNumber: index + 1,
-                    targetWeight: targetWeight,
-                    targetReps: targetReps,
-                  ),
+        return AlertDialog(
+          title: const Text('Add Exercise'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Exercise Name'),
+                  onChanged: (value) => name = value,
                 ),
-              );
-
-              await _supabaseServices.addExercise(widget.dailyWorkout.id, newExercise);
-              setState(() {
-                widget.dailyWorkout.exercises.add(newExercise);
-              });
-              Navigator.of(context).pop();
-            },
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Description'),
+                  onChanged: (value) => description = value,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Category'),
+                  onChanged: (value) => category = value,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Target Weight (kg)'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) => targetWeight = double.tryParse(value) ?? 0,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Target Reps'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) => targetReps = int.tryParse(value) ?? 0,
+                ),
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Number of Sets'),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) => numberOfSets = int.tryParse(value) ?? 1,
+                ),
+              ],
+            ),
           ),
-        ],
-      );
-    },
-  );
-}
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Add'),
+              onPressed: () async {
+                final newExercise = Exercise(
+                  id: '', // Will be set by the database
+                  name: name,
+                  description: description,
+                  category: category,
+                  order: widget.dailyWorkout.exercises.length + 1,
+                  sets: List.generate(
+                    numberOfSets,
+                    (index) => ExerciseSet(
+                      id: '',
+                      setNumber: index + 1,
+                      targetWeight: targetWeight,
+                      targetReps: targetReps,
+                    ),
+                  ),
+                );
+
+                await _supabaseServices.addExercise(widget.dailyWorkout.id, newExercise);
+                setState(() {
+                  widget.dailyWorkout.exercises.add(newExercise);
+                });
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _handleExerciseDeleted(Exercise deletedExercise) {
     setState(() {
