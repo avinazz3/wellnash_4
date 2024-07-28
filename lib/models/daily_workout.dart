@@ -49,6 +49,7 @@ class DailyWorkout {
       week: json['week'],
       day: json['day'],
       exercises: (json['exercises'] as List<dynamic>?)?.map((exerciseData) {
+            print('Parsing exercise: ${exerciseData['exercise']['name']}');
             final exerciseInfo = exerciseData['exercise'];
             final exerciseSets =
                 (exerciseData['exercise_sets'] as List<dynamic>)

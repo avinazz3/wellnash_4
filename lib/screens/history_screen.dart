@@ -75,10 +75,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<DailyWorkout?> _getFullWorkoutDetails(String workoutId) async {
-  try {
-    final workoutData = await supabase
-        .from('dailyworkouts')
-        .select('''
+    try {
+      print('Fetching workout details for id: $workoutId');
+      final workoutData = await supabase.from('dailyworkouts').select('''
           *,
           exercises:dailyworkout_exercises (
             id,
@@ -90,30 +89,38 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             exercise_sets (*)
           )
-        ''')
-        .eq('id', workoutId)
-        .single();
+        ''').eq('id', workoutId).single();
 
-    return DailyWorkout.fromJson(workoutData);
-  } catch (e) {
-    print('Error fetching full workout details: $e');
-    return null;
+      print('Raw workout data: $workoutData');
+      print(
+          'Number of exercises in raw data: ${(workoutData['exercises'] as List?)?.length ?? 0}');
+
+      final dailyWorkout = DailyWorkout.fromJson(workoutData);
+      print(
+          'Parsed DailyWorkout. Number of exercises: ${dailyWorkout.exercises.length}');
+
+      return dailyWorkout;
+    } catch (e) {
+      print('Error fetching full workout details: $e');
+      return null;
+    }
   }
-}
 
   void _onWorkoutTapped(DailyWorkout workout) async {
+    print('Workout tapped: ${workout.id}');
     final fullWorkout = await _getFullWorkoutDetails(workout.id);
     if (fullWorkout != null && mounted) {
+      print('Full workout fetched. Number of exercises: ${fullWorkout.exercises.length}');
       Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => ShowWorkoutDetailsScreen(
             dailyWorkout: fullWorkout,
-            //userId: supabase.auth.currentUser!.id,
           ),
         ),
       );
     } else if (mounted) {
+      print('Failed to fetch full workout details');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to load workout details')),
       );
@@ -166,7 +173,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     List<DailyWorkout> filteredLogs = _filteredWorkoutLogs();
 
@@ -196,9 +203,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     itemCount: filteredLogs.length,
                     itemBuilder: (context, index) {
                       final log = filteredLogs[index];
-                      return GestureDetector(
-                        onTap: () => _onWorkoutTapped(log),
-                        child: CondensedWorkoutWidget(dailyWorkout: log),
+                      return CondensedWorkoutWidget(
+                        dailyWorkout: log,
+                        onTap: _onWorkoutTapped,
                       );
                     },
                   ),

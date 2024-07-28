@@ -21,6 +21,8 @@ class ShowWorkoutDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Building ShowWorkoutDetailsScreen for ${dailyWorkout.name}');
+    print('Number of exercises: ${dailyWorkout.exercises.length}');
     return Scaffold(
       appBar: AppBar(
         title: Text(dailyWorkout.name),
@@ -93,6 +95,13 @@ class ExerciseWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('Building ExerciseWidget for ${exercise.name}');
+    print('Number of sets: ${exercise.sets.length}');
+    
+    // Sort sets by set number
+    final sortedSets = List<ExerciseSet>.from(exercise.sets)
+      ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Padding(
@@ -100,34 +109,42 @@ class ExerciseWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Exercise $exerciseNumber: ${exercise.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Exercise $exerciseNumber: ${exercise.name}', 
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             if (exercise.category != null) Text('Category: ${exercise.category}'),
             if (exercise.description != null) Text('Description: ${exercise.description}'),
             const SizedBox(height: 8),
-            ...exercise.sets.map((set) => SetWidget(set: set)).toList(),
+            Table(
+              border: TableBorder.all(),
+              columnWidths: const {
+                0: FlexColumnWidth(1),
+                1: FlexColumnWidth(2),
+                2: FlexColumnWidth(2),
+              },
+              children: [
+                const TableRow(
+                  children: [
+                    TableCell(child: Center(child: Text('Set', style: TextStyle(fontWeight: FontWeight.bold)))),
+                    TableCell(child: Center(child: Text('Target', style: TextStyle(fontWeight: FontWeight.bold)))),
+                    TableCell(child: Center(child: Text('Actual', style: TextStyle(fontWeight: FontWeight.bold)))),
+                  ],
+                ),
+                ...sortedSets.map((set) => TableRow(
+                  children: [
+                    TableCell(child: Center(child: Text(set.setNumber.toString()))),
+                    TableCell(child: Center(child: Text('${set.targetWeight ?? 0} x ${set.targetReps ?? 0}'))),
+                    TableCell(child: Center(child: Text(
+                      set.actualWeight != null && set.actualReps != null
+                        ? '${set.actualWeight} kg x ${set.actualReps}'
+                        : 'N/A',
+                      style: const TextStyle(color: Colors.green),
+                    ))),
+                  ],
+                )).toList(),
+              ],
+            ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class SetWidget extends StatelessWidget {
-  final ExerciseSet set;
-
-  const SetWidget({required this.set, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Expanded(child: Text('Set ${set.setNumber}')),
-          Expanded(child: Text('Target: ${set.targetWeight} kg x ${set.targetReps}')),
-          if (set.actualWeight != null && set.actualReps != null)
-            Expanded(child: Text('Actual: ${set.actualWeight} kg x ${set.actualReps}', style: const TextStyle(color: Colors.green))),
-        ],
       ),
     );
   }

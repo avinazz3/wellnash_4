@@ -1,9 +1,9 @@
 class Exercise {
-  String id;
+  late String id;
   final String name;
-  final String? category; // e.g., 'Main lift', 'Accessory', etc.
+  final String? category;
   final String? description;
-  final int order;
+  final int? order;
   final List<ExerciseSet> sets;
 
   Exercise({
@@ -11,21 +11,22 @@ class Exercise {
     required this.name,
     this.category,
     this.description,
-    required this.order,
+    this.order,
     required this.sets,
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
-  return Exercise(
-    id: json['id'],
-    name: json['name'],
-    description: json['description'],
-    category: json['category'],
-    sets: (json['sets'] as List<dynamic>?)
-        ?.map((setData) => ExerciseSet.fromJson(setData))
-        .toList() ?? [], order: json['order'],
-  );
-}
+    return Exercise(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      category: json['category'] as String?,
+      description: json['description'] as String?,
+      order: json['order'] as int?,
+      sets: (json['exercise_sets'] as List<dynamic>?)
+          ?.map((setData) => ExerciseSet.fromJson(setData))
+          .toList() ?? [],
+    );
+  }
 
   Exercise copyWith({
     String? id,
@@ -61,42 +62,42 @@ class ExerciseSet {
   late String id;
   final int setNumber;
   final int intensity;
-  final double targetWeight;
-  final int targetReps;
+  final double? targetWeight;
+  final int? targetReps;
   double? actualWeight;
   int? actualReps;
 
   ExerciseSet({
     required this.id,
     required this.setNumber,
-    this.intensity = 0, //ive set intensity to 0, because we dont exactly know how to figure it out yet
-    required this.targetWeight,
-    required this.targetReps,
+    this.intensity = 0,
+    this.targetWeight,
+    this.targetReps,
     this.actualWeight,
     this.actualReps,
   });
 
   factory ExerciseSet.fromJson(Map<String, dynamic> json) {
     return ExerciseSet(
-      id: json['id'],
-      setNumber: json['setNumber'],
-      intensity: json['intensity'],
-      targetWeight: json['targetWeight'].toDouble(),
-      targetReps: json['targetReps'],
-      actualWeight: json['actualWeight']?.toDouble(),
-      actualReps: json['actualReps'],
+      id: json['id'] as String,
+      setNumber: json['set_number'] as int,
+      intensity: json['intensity'] as int? ?? 0,
+      targetWeight: (json['target_weight'] as num?)?.toDouble(),
+      targetReps: json['target_reps'] as int?,
+      actualWeight: (json['actual_weight'] as num?)?.toDouble(),
+      actualReps: json['actual_reps'] as int?,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'setNumber': setNumber,
+      'set_number': setNumber,
       'intensity': intensity,
-      'targetWeight': targetWeight,
-      'targetReps': targetReps,
-      'actualWeight': actualWeight,
-      'actualReps': actualReps,
+      'target_weight': targetWeight,
+      'target_reps': targetReps,
+      'actual_weight': actualWeight,
+      'actual_reps': actualReps,
     };
   }
 }

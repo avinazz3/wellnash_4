@@ -1,25 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:wellnash_4/models/daily_workout.dart';
-import 'package:wellnash_4/screens/show_workout_details.dart';
 
 class CondensedWorkoutWidget extends StatelessWidget {
   final DailyWorkout dailyWorkout;
+  final Function(DailyWorkout) onTap;
 
-  const CondensedWorkoutWidget({required this.dailyWorkout, super.key});
+  const CondensedWorkoutWidget({
+    required this.dailyWorkout,
+    required this.onTap,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.all(8.0),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ShowWorkoutDetailsScreen(dailyWorkout: dailyWorkout),
-            ),
-          );
-        },
+        onTap: () => onTap(dailyWorkout),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
