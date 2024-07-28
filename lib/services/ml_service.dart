@@ -76,88 +76,99 @@ class MLService {
     }
   }
 
-  Future<DailyWorkout> getDailyWorkoutWithExercises(
-      String dailyWorkoutId) async {
-    try {
-      final workoutData = await supabase.from('dailyworkouts').select('''
-          *,
-          dailyworkout_exercises (
-            exercise_order,
-            exercise:exercises (
-              id,
-              name,
-              description,
-              category
-            ),
-            exercise_sets (
-              id,
-              set_number,
-              target_weight,
-              target_reps,
-              actual_weight,
-              actual_reps
-            )
+  Future<DailyWorkout> getDailyWorkoutWithExercises(String dailyWorkoutId) async {
+  try {
+    print('Fetching daily workout with ID: $dailyWorkoutId');
+    final workoutData = await supabase.from('dailyworkouts').select('''
+        *,
+        dailyworkout_exercises (
+          exercise_order,
+          exercise:exercises (
+            id,
+            name,
+            description,
+            category
+          ),
+          exercise_sets (
+            id,
+            set_number,
+            target_weight,
+            target_reps,
+            actual_weight,
+            actual_reps
           )
-        ''').eq('id', dailyWorkoutId).single();
+        )
+      ''').eq('id', dailyWorkoutId).single();
 
-      return DailyWorkout(
-        id: workoutData['id'],
-        workoutLogId: workoutData['workout_log_id'],
-        name: workoutData['name'] ?? 'Unnamed Workout',
-        date: DateTime.parse(
-            workoutData['date'] ?? DateTime.now().toIso8601String()),
-        week: workoutData['week'] ?? 0,
-        day: workoutData['day'] ?? 0,
-        workoutRegime: workoutData['workout_regime'] ?? '',
-        timeStarted: DateTime.parse(
-            workoutData['time_started'] ?? DateTime.now().toIso8601String()),
-        timeEnded: workoutData['time_ended'] != null
-            ? DateTime.parse(workoutData['time_ended'])
-            : null,
-        duration: workoutData['duration'] != null
-            ? Duration(seconds: workoutData['duration'])
-            : null,
-        createdAt: DateTime.parse(
-            workoutData['created_at'] ?? DateTime.now().toIso8601String()),
-        updatedAt: DateTime.parse(
-            workoutData['updated_at'] ?? DateTime.now().toIso8601String()),
-        exercises: (workoutData['dailyworkout_exercises'] as List?)
-                ?.map((exerciseData) => Exercise(
-                      id: exerciseData['exercise']['id'],
-                      name: exerciseData['exercise']['name'] ??
-                          'Unnamed Exercise',
-                      description: exerciseData['exercise']['description'],
-                      category: exerciseData['exercise']['category'],
-                      order: exerciseData['exercise_order'],
-                      sets: (exerciseData['exercise_sets'] as List?)
-                              ?.map((setData) => ExerciseSet(
-                                    id: setData['id'],
-                                    setNumber: setData['set_number'],
-                                    targetWeight:
-                                        (setData['target_weight'] as num?)
-                                                ?.toDouble() ??
-                                            0.0,
-                                    targetReps:
-                                        setData['target_reps'] as int? ?? 0,
-                                    actualWeight:
-                                        (setData['actual_weight'] as num?)
-                                            ?.toDouble(),
-                                    actualReps: setData['actual_reps'] as int?,
-                                  ))
-                              .toList() ??
-                          [],
-                    ))
-                .toList() ??
-            [],
-      );
-    } catch (e) {
-      print('Error fetching daily workout: $e');
-      if (e is PostgrestException) {
-        print('Postgrest error details: ${e.details}');
-      }
-      rethrow;
+    print('Workout data fetched: ${workoutData != null}');
+
+    if (workoutData == null) {
+      throw Exception('No workout data found for ID: $dailyWorkoutId');
     }
+
+    String safeString(dynamic value) => value?.toString() ?? '';
+    int safeInt(dynamic value) => int.tryParse(value?.toString() ?? '') ?? 0;
+    double safeDouble(dynamic value) => double.tryParse(value?.toString() ?? '') ?? 0.0;
+    DateTime safeDateTime(dynamic value) => 
+        DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
+
+    return DailyWorkout(
+      id: safeString(workoutData['id']),
+      workoutLogId: safeString(workoutData['workout_log_id']),
+      name: safeString(workoutData['name']),
+      date: safeDateTime(workoutData['date']),
+      week: safeInt(workoutData['week']),
+      day: safeInt(workoutData['day']),
+      workoutRegime: safeString(workoutData['workout_regime']),
+      timeStarted: safeDateTime(workoutData['time_started']),
+      timeEnded: workoutData['time_ended'] != null 
+          ? safeDateTime(workoutData['time_ended']) 
+          : null,
+      duration: workoutData['duration'] != null
+          ? Duration(seconds: safeInt(workoutData['duration']))
+          : null,
+      createdAt: safeDateTime(workoutData['created_at']),
+      updatedAt: safeDateTime(workoutData['updated_at']),
+      exercises: (workoutData['dailyworkout_exercises'] as List?)
+              ?.map((exerciseData) {
+                print('Processing exercise: ${exerciseData['exercise']['name']}');
+                return Exercise(
+                  id: safeString(exerciseData['exercise']['id']),
+                  name: safeString(exerciseData['exercise']['name']),
+                  description: safeString(exerciseData['exercise']['description']),
+                  category: safeString(exerciseData['exercise']['category']),
+                  order: safeInt(exerciseData['exercise_order']),
+                  sets: (exerciseData['exercise_sets'] as List?)
+                          ?.map((setData) {
+                            print('Processing set: ${setData['set_number']}');
+                            return ExerciseSet(
+                              id: safeString(setData['id']),
+                              setNumber: safeInt(setData['set_number']),
+                              targetWeight: safeDouble(setData['target_weight']),
+                              targetReps: safeInt(setData['target_reps']),
+                              actualWeight: setData['actual_weight'] != null 
+                                  ? safeDouble(setData['actual_weight']) 
+                                  : null,
+                              actualReps: setData['actual_reps'] != null 
+                                  ? safeInt(setData['actual_reps']) 
+                                  : null,
+                            );
+                          })
+                          .toList() ??
+                      [],
+                );
+              })
+              .toList() ??
+          [],
+    );
+  } catch (e) {
+    print('Error fetching daily workout: $e');
+    if (e is PostgrestException) {
+      print('Postgrest error details: ${e.details}');
+    }
+    rethrow;
   }
+}
 
   Future<void> updateExerciseSet(
       String setId, double? actualWeight, int? actualReps) async {

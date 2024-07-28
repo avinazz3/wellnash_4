@@ -193,7 +193,7 @@ serve(async (req) => {
       - ${exercise.name} (${exercise.category}): ${exercise.description}
     `).join('')}
 
-    Important: Only use exercises from the provided list of available exercises.
+    Important: Only use exercises from the provided list of available exercises and stick to the workout regime.
 
     Provide the workout in the following JSON format:
     {
@@ -220,7 +220,7 @@ serve(async (req) => {
       // Generate workout
       const message = await anthropic.messages.create({
         model: "claude-3-sonnet-20240229",
-        max_tokens: 1024,
+        max_tokens: 2048,
         messages: [{ role: "user", content: prompt }],
       })
       // Extract JSON from the content
