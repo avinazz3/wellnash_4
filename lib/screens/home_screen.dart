@@ -80,68 +80,70 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
+Widget build(BuildContext context) {
+  final screenSize = MediaQuery.of(context).size;
 
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+  if (_isLoading) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
 
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenSize.width * 0.05),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(height: screenSize.height * 0.02),
-                        _buildWelcomeMessage(user, screenSize),
-                        SizedBox(height: screenSize.height * 0.02),
-                        _buildCustomDateTimeline(screenSize),
-                        SizedBox(height: screenSize.height * 0.02),
-                        _buildMuscleHighlighter(screenSize),
-                        SizedBox(height: screenSize.height * 0.02),
-                        _buildTodaysWorkout(screenSize),
-                        SizedBox(height: screenSize.height * 0.02),
-                        _buildStartWorkoutButton(context, screenSize),
-                        SizedBox(height: screenSize.height * 0.02),
-                      ],
-                    ),
+  return Scaffold(
+    body: SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenSize.width * 0.05),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(height: screenSize.height * 0.02),
+                      _buildWelcomeMessage(user, screenSize),
+                      SizedBox(height: screenSize.height * 0.02),
+                      _buildCustomDateTimeline(screenSize),
+                      SizedBox(height: screenSize.height * 0.02),
+                      Expanded(
+                        child: _buildMuscleHighlighter(screenSize),
+                      ),
+                      SizedBox(height: screenSize.height * 0.02),
+                      _buildTodaysWorkout(screenSize),
+                      SizedBox(height: screenSize.height * 0.02),
+                      _buildStartWorkoutButton(context, screenSize),
+                      SizedBox(height: screenSize.height * 0.02),
+                    ],
                   ),
                 ),
               ),
-            );
-          },
+            ),
+          );
+        },
+      ),
+    ),
+    bottomNavigationBar: NavigationBar(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: _onItemTapped,
+      destinations: const <NavigationDestination>[
+        NavigationDestination(
+          icon: Icon(Icons.home),
+          label: 'Home',
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.article),
-            label: 'History',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_circle),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
+        NavigationDestination(
+          icon: Icon(Icons.article),
+          label: 'History',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.account_circle),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildWelcomeMessage(models.User? user, Size screenSize) {
     return Container(
@@ -194,25 +196,25 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildMuscleHighlighter(Size screenSize) {
-    return Container(
-      height: screenSize.height * 0.6,
-      width: screenSize.width * 0.9,
-      padding: EdgeInsets.all(screenSize.width * 0.02),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: MuscleHighlighter(),
-    );
-  }
+  return Container(
+    width: screenSize.width * 0.9,
+    height: screenSize.height * 0.6, // Set a fixed height or use a fraction of the screen height
+    padding: EdgeInsets.all(screenSize.width * 0.02),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.3),
+          spreadRadius: 2,
+          blurRadius: 5,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: MuscleHighlighter(),
+  );
+}
 
   Widget _buildTodaysWorkout(Size screenSize) {
     return Container(
@@ -237,7 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         children: [
           Text(
-            "Today's Workout",
+            "Current Workout Regime:",
             style: TextStyle(
               color: Colors.white,
               fontSize: screenSize.width * 0.05,
@@ -246,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           SizedBox(height: screenSize.height * 0.01),
           Text(
-            "Day 2: Legs",
+            user?.workoutRegime ?? 'No workout regime set',
             style: TextStyle(color: Colors.white, fontSize: screenSize.width * 0.045),
           ),
         ],
