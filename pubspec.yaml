@@ -72,6 +72,9 @@ flutter:
   assets:
     - assets/gym_login.png
     - assets/machines-gym.jpg
+    - assets/front_view.jpg
+    - assets/back_view.jpg
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:
