@@ -22,35 +22,45 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   }
 
   Future<void> _checkAuth() async {
-    final session = supabase.auth.currentSession;
+  print("Starting _checkAuth");
+  final session = supabase.auth.currentSession;
+  print("Current session: ${session?.user.id}");
 
-    if (session == null) {
-      _nextScreen = LoginScreen();
-    } else {
-      try {
-        final userData = await supabase
-            .from('users')
-            .select()
-            .eq('id', session.user.id)
-            .single();
+  if (session == null) {
+    print("No session, navigating to LoginScreen");
+    _nextScreen = LoginScreen();
+  } else {
+    try {
+      print("Fetching user data for ID: ${session.user.id}");
+      final userData = await supabase
+          .from('users')
+          .select()
+          .eq('id', session.user.id)
+          .single();
+      
+      print("User data fetched: $userData");
+      print("Profile completed: ${userData['profile_completed']}");
 
-        if (userData['profile_completed'] != true) {
-          _nextScreen = GettingUserDetails();
-        } else {
-          _nextScreen = HomeScreen();
-        }
-      } catch (e) {
-        print('Error checking user data: $e');
-        _nextScreen = LoginScreen();
+      if (userData['profile_completed'] != true) {
+        print("Profile not completed, should navigate to GettingUserDetails");
+        _nextScreen = GettingUserDetails();
+      } else {
+        print("Profile completed, navigating to HomeScreen");
+        _nextScreen = HomeScreen();
       }
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+    } catch (e) {
+      print('Error checking user data: $e');
+      _nextScreen = LoginScreen();
     }
   }
+
+  if (mounted) {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+  print("_checkAuth completed, _nextScreen is: ${_nextScreen.runtimeType}");
+}
 
   @override
   Widget build(BuildContext context) {

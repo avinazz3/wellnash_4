@@ -52,6 +52,7 @@ Future<void> _signUp() async {
 
       if (mounted) {
         // Navigate to getting user details screen
+        print("Signup successful, navigating to GettingUserDetails");
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => GettingUserDetails()),
         );
