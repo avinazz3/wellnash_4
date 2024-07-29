@@ -55,13 +55,7 @@ class _WorkoutPreferencesState extends State<WorkoutPreferences> {
         title: const Text('Workout Preferences'),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color.fromARGB(255, 255, 187, 87), Color.fromARGB(255, 248, 247, 246)],
-          ),
-        ),
+        color: Colors.white, // Set the background color to white
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -142,9 +136,7 @@ class _WorkoutPreferencesState extends State<WorkoutPreferences> {
                 height: 50,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(25),
-                  gradient: const LinearGradient(
-                    colors: [Color.fromARGB(255, 255, 91, 2), Color.fromARGB(255, 239, 211, 4)],
-                  ),
+                  color: Color.fromARGB(255, 255, 187, 87), // Orange color for the button background
                 ),
                 child: ElevatedButton(
                   onPressed: _submitPreferences,
@@ -157,7 +149,7 @@ class _WorkoutPreferencesState extends State<WorkoutPreferences> {
                   ),
                   child: const Text(
                     'Submit',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black), // Black text color
                   ),
                 ),
               ),
