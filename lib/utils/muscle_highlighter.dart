@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'front_view.dart';
-import 'back_view.dart';
 
 class MuscleHighlighter extends StatefulWidget {
   @override
@@ -21,7 +19,10 @@ class _MuscleHighlighterState extends State<MuscleHighlighter> {
     return Column(
       children: [
         Expanded(
-          child: isFrontView ? FrontView() : BackView(),
+          child: Image.asset(
+            isFrontView ? 'front_view.jpg' : 'back_view.jpg',
+            fit: BoxFit.contain,
+          ),
         ),
         ElevatedButton(
           onPressed: toggleView,
