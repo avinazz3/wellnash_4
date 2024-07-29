@@ -390,7 +390,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
         actions: [
           TextButton(
             onPressed: _finishWorkout,
-            child: const Text('Finish', style: TextStyle(color: Color.fromARGB(255, 249, 122, 3))),
+            child: const Text('Finish', style: TextStyle(color: Color.fromARGB(255, 241, 215, 190))),
           ),
         ],
       ),

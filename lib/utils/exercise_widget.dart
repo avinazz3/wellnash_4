@@ -172,7 +172,7 @@ class _ExerciseWidgetState extends State<ExerciseWidget> {
                 style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.purple),
+                    color: Color.fromARGB(255, 0, 0, 0)),
               ),
               IconButton(
                 icon: const Icon(Icons.check_circle_outline),

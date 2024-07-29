@@ -103,7 +103,7 @@ Future<void> _resetPassword() async {
           const SizedBox(height: 18),
           Center(
             child: Container(
-              height: 400,
+              height: 390,
               width: 400,
               child: FittedBox(
                 fit: BoxFit.cover,
@@ -112,71 +112,73 @@ Future<void> _resetPassword() async {
             ),
           ),
           const SizedBox(height: 18),
-          Container(
-            height: 400,
-            width: 400,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12.0),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10.0,
-                  spreadRadius: 5.0,
-                  offset: Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  'SIGN IN',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontFamily: 'SpaceGrotesk_regular', fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
-                const SizedBox(height: 18),
-                TextField(
-                  controller: _passwordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  child: Text(_isLoading ? 'Signing In...' : 'Sign In'),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => SignUpScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    minimumSize: const Size(double.infinity, 20),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+          SingleChildScrollView(
+            child: Container(
+              height: 390,
+              width: 400,
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 10.0,
+                    spreadRadius: 5.0,
+                    offset: Offset(0, 5),
                   ),
-                  child: const Text("Don't have an account? Sign up here", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                ),
-                const SizedBox(height: 18),
-                ElevatedButton(
-                  onPressed: _resetPassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    minimumSize: const Size(double.infinity, 20),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                ],
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'SIGN IN',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontFamily: 'SpaceGrotesk_regular', fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  child: const Text('Reset Password', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
-                ),
-              ],
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                  ),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _signIn,
+                    child: Text(_isLoading ? 'Signing In...' : 'Sign In'),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => SignUpScreen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[300],
+                      minimumSize: const Size(double.infinity, 20),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    child: const Text("Don't have an account? Sign up here", style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton(
+                    onPressed: _resetPassword,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[300],
+                      minimumSize: const Size(double.infinity, 20),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    child: const Text('Reset Password', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic)),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
