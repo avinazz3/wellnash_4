@@ -73,6 +73,8 @@ flutter:
   assets:
     - assets/gym_login.png
     - assets/machines-gym.jpg
+    - assets/front_view.jpg
+    - assets/back_view.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -84,6 +86,10 @@ flutter:
 
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/assets-and-images/#from-packages
+
+  build:
+    web:
+      baseHref: '/wellnash_4/'
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
